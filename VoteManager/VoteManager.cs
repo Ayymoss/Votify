@@ -8,18 +8,24 @@ public class VoteManager
     private readonly ConfigurationModel _configuration;
     private readonly Dictionary<Server, VoteModel> _votes = new();
     private DateTime _lastBroadcastTime = DateTime.UtcNow;
-    private SemaphoreSlim _onUpdateLock = new(1, 1);
+    private Dictionary<Server, DateTime> _lastCreatedVote = new();
+    private readonly SemaphoreSlim _onUpdateLock = new(1, 1);
 
     public VoteManager(ConfigurationModel configuration)
     {
         _configuration = configuration;
     }
 
+    public bool InProgressVote(Server server) => _votes.ContainsKey(server);
 
-    public async Task<VoteResult> CreateVote(Server server, EFClient origin, EFClient target, string reason,
-        VoteType voteType, string? mapName = null)
+    public VoteResult CreateVote(Server server, EFClient origin, EFClient target,
+        VoteType voteType, string? reason = null, string? mapName = null)
     {
-        if (_votes.ContainsKey(server)) return VoteResult.VoteInProgress;
+        if (InProgressVote(server)) return VoteResult.VoteInProgress;
+        if (_lastCreatedVote.ContainsKey(server) &&
+            _lastCreatedVote[server] > DateTime.UtcNow.AddSeconds(_configuration.VoteCooldown))
+            return VoteResult.VoteCooldown;
+
         _votes.Add(server, new VoteModel
         {
             Origin = origin,
@@ -30,19 +36,21 @@ public class VoteManager
             MapName = mapName,
             Votes = new Dictionary<EFClient, Vote> {{origin, Vote.Yes}, {target, Vote.No}}
         });
+
+        _lastCreatedVote.Add(server, DateTime.UtcNow);
+
         return VoteResult.Success;
     }
 
-    public async Task<VoteResult> CastVote(Server server, EFClient origin, Vote vote)
+    public VoteResult CastVote(Server server, EFClient origin, Vote vote)
     {
-        if (!_votes.ContainsKey(server)) return VoteResult.NoVoteInProgress;
+        if (!InProgressVote(server)) return VoteResult.NoVoteInProgress;
         if (!_votes[server].Votes!.ContainsKey(origin)) return VoteResult.AlreadyVoted;
 
         _votes[server].Votes!.Add(origin, vote);
         return VoteResult.Success;
     }
 
-    // If the server pop drops below the threshold, the vote is cancelled
     public async Task OnUpdate()
     {
         try
@@ -50,17 +58,20 @@ public class VoteManager
             await _onUpdateLock.WaitAsync();
             foreach (var server in _votes.Keys)
             {
+                // Check if anyone has left and brought it below the player threshold
                 if (server.ClientNum < _configuration.MinimumPlayersRequired)
                 {
                     _votes.Remove(server);
+                    server.Broadcast(_configuration.VoteMessages.VoteCancelledDueToPlayerDisconnect
+                        .FormatExt(_votes[server].VoteType));
                     continue;
                 }
-                
+
                 // Broadcast a currently running vote.
                 if (_lastBroadcastTime.AddSeconds(_configuration.TimeBetweenVoteReminders) < DateTime.UtcNow)
                 {
-                    server.Broadcast(
-                        _configuration.VoteMessages.OpenVoteAutoMessage.FormatExt(_votes[server].VoteType));
+                    server.Broadcast(_configuration.VoteMessages.OpenVoteAutoMessage
+                        .FormatExt(_votes[server].VoteType));
                     _lastBroadcastTime = DateTime.UtcNow;
                 }
 
@@ -119,15 +130,14 @@ public class VoteManager
         _votes.Remove(server);
     }
 
-    public VoteResult CancelVote(Server server)
+    public void CancelVote(Server server)
     {
         _votes.Remove(server);
-        return VoteResult.Success;
     }
 
     public void HandleDisconnect(Server server, EFClient client)
     {
-        if (!_votes.ContainsKey(server)) return;
+        if (!InProgressVote(server)) return;
         foreach (var vote in _votes.Values.Where(vote =>
                      vote.Origin?.ClientId == client.ClientId || vote.Target?.ClientId == client.ClientId))
         {
@@ -158,16 +168,10 @@ public enum VoteType
 public enum VoteResult
 {
     Success,
-    Failure,
     AlreadyVoted,
     NoVoteInProgress,
-    NotEnoughVotes,
-    InvalidTarget,
-    InvalidOrigin,
-    InvalidVoteType,
-    InvalidReason,
-    InvalidServer,
-    VoteInProgress
+    VoteInProgress,
+    VoteCooldown,
 }
 
 public enum Vote

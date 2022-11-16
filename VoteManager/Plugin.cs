@@ -5,24 +5,24 @@ namespace VoteManager;
 
 public class Plugin : IPlugin
 {
-    private readonly Configuration _configuration;
-    private ConfigurationModel? _config;
-    public VoteManager VoteManager;
+    private readonly IConfigurationHandler<ConfigurationModel> _configurationHandler;
+    private ConfigurationModel _config = null!;
+    public static VoteManager VoteManager = null!;
 
-    public const string PluginName = "Vote Manager";
+    private const string PluginName = "Vote Manager";
     public string Name => PluginName;
     public float Version => 20221116f;
     public string Author => "Amos";
 
-    public Plugin(IServiceProvider serviceProvider)
+    public Plugin(IConfigurationHandler<ConfigurationModel> configurationHandler)
     {
-        _configuration = new Configuration(serviceProvider);
-        VoteManager = new VoteManager(_config!);
+        _configurationHandler = configurationHandler;
+        VoteManager = new VoteManager(_config);
     }
 
     public async Task OnEventAsync(GameEvent gameEvent, Server server)
     {
-        if (_config is null || !_config.IsEnabled) return;
+        if (!_config.IsEnabled) return;
 
         switch (gameEvent.Type)
         {
@@ -37,7 +37,15 @@ public class Plugin : IPlugin
 
     public async Task OnLoadAsync(IManager manager)
     {
-        _config = await _configuration.Load();
+        await _configurationHandler.BuildAsync();
+        if (_configurationHandler.Configuration() == null)
+        {
+            Console.WriteLine($"[{PluginName}] Configuration not found, creating.");
+            _configurationHandler.Set(new ConfigurationModel());
+        }
+
+        await _configurationHandler.Save();
+        _config = _configurationHandler.Configuration();
     }
 
     public Task OnUnloadAsync()
