@@ -6,7 +6,7 @@ namespace VoteManager;
 public class Plugin : IPlugin
 {
     private readonly IConfigurationHandler<ConfigurationModel> _configurationHandler;
-    private ConfigurationModel _config = null!;
+    private ConfigurationModel _configuration = null!;
     public static VoteManager VoteManager = null!;
 
     private const string PluginName = "Vote Manager";
@@ -17,12 +17,12 @@ public class Plugin : IPlugin
     public Plugin(IConfigurationHandler<ConfigurationModel> configurationHandler)
     {
         _configurationHandler = configurationHandler;
-        VoteManager = new VoteManager(_config);
+        VoteManager = new VoteManager(_configuration);
     }
 
     public async Task OnEventAsync(GameEvent gameEvent, Server server)
     {
-        if (!_config.IsEnabled) return;
+        if (!_configuration.IsEnabled) return;
 
         switch (gameEvent.Type)
         {
@@ -45,7 +45,7 @@ public class Plugin : IPlugin
         }
 
         await _configurationHandler.Save();
-        _config = _configurationHandler.Configuration();
+        _configuration = _configurationHandler.Configuration();
     }
 
     public Task OnUnloadAsync()

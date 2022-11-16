@@ -37,7 +37,7 @@ public class VoteBanCommand : Command
 
     public override async Task ExecuteAsync(GameEvent gameEvent)
     {
-        if (_configuration.IsVoteTypeEnabled.VoteBan)
+        if (!_configuration.IsVoteTypeEnabled.VoteBan)
         {
             gameEvent.Origin.Tell(_configuration.VoteMessages.VoteDisabled);
             return;
@@ -50,12 +50,15 @@ public class VoteBanCommand : Command
         {
             case VoteResult.Success:
                 gameEvent.Origin.Tell(_configuration.VoteMessages.VoteSuccess);
-                gameEvent.Owner.Broadcast(_configuration.VoteMessages.KickBanVoteStarted.FormatExt(VoteType.Ban,
-                    gameEvent.Origin.CleanedName, gameEvent.Target.CleanedName, gameEvent.Data));
+                gameEvent.Owner.Broadcast(_configuration.VoteMessages.KickBanVoteStarted
+                    .FormatExt(VoteType.Ban, gameEvent.Origin.CleanedName, gameEvent.Target.CleanedName,
+                        gameEvent.Data));
                 break;
-
             case VoteResult.VoteInProgress:
                 gameEvent.Origin.Tell(_configuration.VoteMessages.VoteInProgress);
+                break;
+            case VoteResult.VoteCooldown:
+                gameEvent.Origin.Tell(_configuration.VoteMessages.VoteCooldown);
                 break;
         }
     }

@@ -19,6 +19,7 @@ public class VoteKickCommand : Command
         Alias = "vk";
         Permission = EFClient.Permission.User;
         RequiresTarget = true;
+        configurationHandler.BuildAsync().Wait();
         _configuration = configurationHandler.Configuration();
         Arguments = new[]
         {
@@ -37,7 +38,7 @@ public class VoteKickCommand : Command
 
     public override async Task ExecuteAsync(GameEvent gameEvent)
     {
-        if (_configuration.IsVoteTypeEnabled.VoteKick)
+        if (!_configuration.IsVoteTypeEnabled.VoteKick)
         {
             gameEvent.Origin.Tell(_configuration.VoteMessages.VoteDisabled);
             return;
@@ -50,12 +51,15 @@ public class VoteKickCommand : Command
         {
             case VoteResult.Success:
                 gameEvent.Origin.Tell(_configuration.VoteMessages.VoteSuccess);
-                gameEvent.Owner.Broadcast(_configuration.VoteMessages.KickBanVoteStarted.FormatExt(VoteType.Kick,
-                    gameEvent.Origin.CleanedName, gameEvent.Target.CleanedName, gameEvent.Data));
+                gameEvent.Owner.Broadcast(_configuration.VoteMessages.KickBanVoteStarted
+                    .FormatExt(VoteType.Kick, gameEvent.Origin.CleanedName, gameEvent.Target.CleanedName,
+                        gameEvent.Data));
                 break;
-
             case VoteResult.VoteInProgress:
                 gameEvent.Origin.Tell(_configuration.VoteMessages.VoteInProgress);
+                break;
+            case VoteResult.VoteCooldown:
+                gameEvent.Origin.Tell(_configuration.VoteMessages.VoteCooldown);
                 break;
         }
     }

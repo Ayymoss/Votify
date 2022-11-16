@@ -28,17 +28,14 @@ public class VoteTypeConfiguration
 
 public class VoteMessages
 {
-    public string? NotEnoughVotes { get; set; } = "VOTE: {{type}} on {target}} failed, not enough votes";
-    public string? NotEnoughYesVotes { get; set; } = "VOTE: {{type}} on {{target}} failed, not enough yes votes";
-
-    public string? OpenVoteAutoMessage { get; set; } = "VOTE: There is an ongoing {{type}} vote. Type (Color::Green)!y (Color::White)or (Color::Red)!n (Color::White)to vote";
-
-    public string? VoteCancelledDueToPlayerDisconnect { get; set; } = "VOTE: Vote {{type}} cancelled due to player disconnect";
-
+    public string NotEnoughVotes { get; set; } = "VOTE: {{type}} on {target}} failed, not enough votes";
+    public string NotEnoughYesVotes { get; set; } = "VOTE: {{type}} on {{target}} failed, not enough yes votes";
+    public string OpenVoteAutoMessage { get; set; } = "VOTE: There is an ongoing {{type}} vote. Type (Color::Green)!y (Color::White)or (Color::Red)!n (Color::White)to vote";
+    public string VoteCancelledDueToPlayerDisconnect { get; set; } = "VOTE: Vote {{type}} cancelled due to player disconnect";
     public string VoteInProgress { get; set; } = "VOTE: There is already a vote in progress";
-    public string KickBanVoteStarted { get; set; } = "VOTE! {{origin}} wants to {{type}} {{target}} for {{reason}}";
-    public string MapVoteStarted { get; set; } = "VOTE! {{origin}} wants to change the map to {{mapName}}";
-    public string SkipVoteStarted { get; set; } = "VOTE! {{origin}} wants to skip this map";
+    public string KickBanVoteStarted { get; set; } = "VOTE: {{origin}} wants to {{type}} {{target}} for {{reason}}";
+    public string MapVoteStarted { get; set; } = "VOTE: {{origin}} wants to change the map to {{mapName}}";
+    public string SkipVoteStarted { get; set; } = "VOTE: {{origin}} wants to skip this map";
     public string VoteCancelled { get; set; } = "VOTE: {{type}} vote cancelled";
     public string NoVoteInProgress { get; set; } = "VOTE: No vote in progress";
     public string VoteSuccess { get; set; } = "VOTE: Your vote has been counted";

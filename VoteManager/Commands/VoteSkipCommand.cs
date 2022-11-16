@@ -24,7 +24,7 @@ public class VoteSkipCommand : Command
 
     public override async Task ExecuteAsync(GameEvent gameEvent)
     {
-        if (_configuration.IsVoteTypeEnabled.VoteSkip)
+        if (!_configuration.IsVoteTypeEnabled.VoteSkip)
         {
             gameEvent.Origin.Tell(_configuration.VoteMessages.VoteDisabled);
             return;
@@ -37,12 +37,14 @@ public class VoteSkipCommand : Command
         {
             case VoteResult.Success:
                 gameEvent.Origin.Tell(_configuration.VoteMessages.VoteSuccess);
-                gameEvent.Owner.Broadcast(_configuration.VoteMessages.KickBanVoteStarted.FormatExt(VoteType.Ban,
-                    gameEvent.Origin.CleanedName, gameEvent.Target.CleanedName, gameEvent.Data));
+                gameEvent.Owner.Broadcast(_configuration.VoteMessages.SkipVoteStarted
+                    .FormatExt(gameEvent.Origin.CleanedName));
                 break;
-
             case VoteResult.VoteInProgress:
                 gameEvent.Origin.Tell(_configuration.VoteMessages.VoteInProgress);
+                break;
+            case VoteResult.VoteCooldown:
+                gameEvent.Origin.Tell(_configuration.VoteMessages.VoteCooldown);
                 break;
         }
     }

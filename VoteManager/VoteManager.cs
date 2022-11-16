@@ -8,7 +8,7 @@ public class VoteManager
     private readonly ConfigurationModel _configuration;
     private readonly Dictionary<Server, VoteModel> _votes = new();
     private DateTime _lastBroadcastTime = DateTime.UtcNow;
-    private Dictionary<Server, DateTime> _lastCreatedVote = new();
+    private readonly Dictionary<Server, DateTime> _lastCreatedVote = new();
     private readonly SemaphoreSlim _onUpdateLock = new(1, 1);
 
     public VoteManager(ConfigurationModel configuration)
@@ -17,14 +17,21 @@ public class VoteManager
     }
 
     public bool InProgressVote(Server server) => _votes.ContainsKey(server);
+    
+    public void CancelVote(Server server) => _votes.Remove(server);
 
     public VoteResult CreateVote(Server server, EFClient origin, EFClient target,
         VoteType voteType, string? reason = null, string? mapName = null)
     {
         if (InProgressVote(server)) return VoteResult.VoteInProgress;
         if (_lastCreatedVote.ContainsKey(server) &&
-            _lastCreatedVote[server] > DateTime.UtcNow.AddSeconds(_configuration.VoteCooldown))
+            _lastCreatedVote[server].AddSeconds(_configuration.VoteCooldown) < DateTime.UtcNow)
+        {
             return VoteResult.VoteCooldown;
+        }
+
+        if (_lastCreatedVote.ContainsKey(server)) _lastCreatedVote.Remove(server);
+        _lastCreatedVote.Add(server, DateTime.UtcNow);
 
         _votes.Add(server, new VoteModel
         {
@@ -36,8 +43,6 @@ public class VoteManager
             MapName = mapName,
             Votes = new Dictionary<EFClient, Vote> {{origin, Vote.Yes}, {target, Vote.No}}
         });
-
-        _lastCreatedVote.Add(server, DateTime.UtcNow);
 
         return VoteResult.Success;
     }
@@ -90,6 +95,7 @@ public class VoteManager
 
     private async Task EndVote(Server server)
     {
+        // If only 2 people vote, we shouldn't really action it if there's more than 4 on the server.
         if (_configuration.MinimumPlayersRequiredForSuccessfulVote > _votes[server].Votes!.Count)
         {
             server.Broadcast(_configuration.VoteMessages.NotEnoughVotes.FormatExt(_votes[server].VoteType,
@@ -127,11 +133,6 @@ public class VoteManager
                 break;
         }
 
-        _votes.Remove(server);
-    }
-
-    public void CancelVote(Server server)
-    {
         _votes.Remove(server);
     }
 
