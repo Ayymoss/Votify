@@ -14,7 +14,7 @@ public class ConfigurationModel : IBaseConfiguration
     public VoteTypeConfiguration IsVoteTypeEnabled { get; set; } = new();
     public Translation Translations { get; set; } = new();
 
-    public string Name() => "VoteManagerSettings";
+    public string Name() => "VotifySettings";
     public IBaseConfiguration Generate() => new ConfigurationModel();
 }
 
