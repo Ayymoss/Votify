@@ -8,10 +8,7 @@ namespace VoteManager.Commands;
 
 public class VoteSkipCommand : Command
 {
-    private readonly ConfigurationModel _configuration;
-
-    public VoteSkipCommand(CommandConfiguration config, ITranslationLookup translationLookup,
-        IConfigurationHandler<ConfigurationModel> configurationHandler) : base(config,
+    public VoteSkipCommand(CommandConfiguration config, ITranslationLookup translationLookup) : base(config,
         translationLookup)
     {
         Name = "voteskip";
@@ -19,32 +16,30 @@ public class VoteSkipCommand : Command
         Alias = "vs";
         Permission = EFClient.Permission.User;
         RequiresTarget = false;
-        _configuration = configurationHandler.Configuration();
     }
 
     public override async Task ExecuteAsync(GameEvent gameEvent)
     {
-        if (!_configuration.IsVoteTypeEnabled.VoteSkip)
+        if (!Plugin.Configuration.IsVoteTypeEnabled.VoteSkip)
         {
-            gameEvent.Origin.Tell(_configuration.VoteMessages.VoteDisabled);
+            gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteDisabled);
             return;
         }
 
-        var result = Plugin.VoteManager.CreateVote(gameEvent.Owner, gameEvent.Origin, gameEvent.Target,
-            VoteType.Map);
+        var result = Plugin.VoteManager.CreateVote(gameEvent.Owner, VoteType.Skip, gameEvent.Origin);
 
         switch (result)
         {
             case VoteResult.Success:
-                gameEvent.Origin.Tell(_configuration.VoteMessages.VoteSuccess);
-                gameEvent.Owner.Broadcast(_configuration.VoteMessages.SkipVoteStarted
+                gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteSuccess);
+                gameEvent.Owner.Broadcast(Plugin.Configuration.Translations.SkipVoteStarted
                     .FormatExt(gameEvent.Origin.CleanedName));
                 break;
             case VoteResult.VoteInProgress:
-                gameEvent.Origin.Tell(_configuration.VoteMessages.VoteInProgress);
+                gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteInProgress);
                 break;
             case VoteResult.VoteCooldown:
-                gameEvent.Origin.Tell(_configuration.VoteMessages.VoteCooldown);
+                gameEvent.Origin.Tell(Plugin.Configuration.Translations.TooRecentVote);
                 break;
         }
     }

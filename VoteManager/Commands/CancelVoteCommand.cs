@@ -7,10 +7,7 @@ namespace VoteManager.Commands;
 
 public class CancelVoteCommand : Command
 {
-    private readonly ConfigurationModel _configuration;
-
-    public CancelVoteCommand(CommandConfiguration config, ITranslationLookup translationLookup,
-        IConfigurationHandler<ConfigurationModel> configurationHandler) : base(config,
+    public CancelVoteCommand(CommandConfiguration config, ITranslationLookup translationLookup) : base(config,
         translationLookup)
     {
         Name = "cancelvote";
@@ -18,7 +15,6 @@ public class CancelVoteCommand : Command
         Alias = "cv";
         Permission = EFClient.Permission.Moderator;
         RequiresTarget = false;
-        _configuration = configurationHandler.Configuration();
     }
 
     public override async Task ExecuteAsync(GameEvent gameEvent)
@@ -26,11 +22,11 @@ public class CancelVoteCommand : Command
         if (Plugin.VoteManager.InProgressVote(gameEvent.Owner))
         {
             Plugin.VoteManager.CancelVote(gameEvent.Owner);
-            gameEvent.Origin.Tell(_configuration.VoteMessages.VoteCancelled);
+            gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteCancelled);
         }
         else
         {
-            gameEvent.Origin.Tell(_configuration.VoteMessages.VoteInProgress);
+            gameEvent.Origin.Tell(Plugin.Configuration.Translations.NoVoteInProgress);
         }
     }
 }

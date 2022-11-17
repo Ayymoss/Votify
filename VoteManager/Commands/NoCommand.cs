@@ -7,10 +7,7 @@ namespace VoteManager.Commands;
 
 public class NoCommand : Command
 {
-    private readonly ConfigurationModel _configuration;
-
-    public NoCommand(CommandConfiguration config, ITranslationLookup translationLookup,
-        IConfigurationHandler<ConfigurationModel> configurationHandler) : base(config,
+    public NoCommand(CommandConfiguration config, ITranslationLookup translationLookup) : base(config,
         translationLookup)
     {
         Name = "no";
@@ -18,7 +15,6 @@ public class NoCommand : Command
         Alias = "n";
         Permission = EFClient.Permission.User;
         RequiresTarget = false;
-        _configuration = configurationHandler.Configuration();
     }
 
     public override async Task ExecuteAsync(GameEvent gameEvent)
@@ -29,19 +25,19 @@ public class NoCommand : Command
             switch (result)
             {
                 case VoteResult.Success:
-                    gameEvent.Origin.Tell(_configuration.VoteMessages.VoteSuccess);
+                    gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteSuccess);
                     break;
                 case VoteResult.NoVoteInProgress:
-                    gameEvent.Origin.Tell(_configuration.VoteMessages.NoVoteInProgress);
+                    gameEvent.Origin.Tell(Plugin.Configuration.Translations.NoVoteInProgress);
                     break;
                 case VoteResult.AlreadyVoted:
-                    gameEvent.Origin.Tell(_configuration.VoteMessages.AlreadyVoted);
+                    gameEvent.Origin.Tell(Plugin.Configuration.Translations.AlreadyVoted);
                     break;
             }
         }
         else
         {
-            gameEvent.Origin.Tell("There is no vote in progress");
+            gameEvent.Origin.Tell(Plugin.Configuration.Translations.NoVoteInProgress);
         }
     }
 }

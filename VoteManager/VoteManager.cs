@@ -5,27 +5,27 @@ namespace VoteManager;
 
 public class VoteManager
 {
-    private readonly ConfigurationModel _configuration;
+    //private readonly ConfigurationModel _configuration;
     private readonly Dictionary<Server, VoteModel> _votes = new();
-    private DateTime _lastBroadcastTime = DateTime.UtcNow;
+    private readonly Dictionary<Server, DateTime> _lastBroadcastTime = new();
     private readonly Dictionary<Server, DateTime> _lastCreatedVote = new();
     private readonly SemaphoreSlim _onUpdateLock = new(1, 1);
 
-    public VoteManager(ConfigurationModel configuration)
-    {
-        _configuration = configuration;
-    }
+    //public VoteManager(ConfigurationModel configuration)
+    //{
+    //    _configuration = configuration;
+    //}
 
     public bool InProgressVote(Server server) => _votes.ContainsKey(server);
-    
+
     public void CancelVote(Server server) => _votes.Remove(server);
 
-    public VoteResult CreateVote(Server server, EFClient origin, EFClient target,
-        VoteType voteType, string? reason = null, string? mapName = null)
+    public VoteResult CreateVote(Server server, VoteType voteType, EFClient origin, EFClient? target = null,
+        string? reason = null, string? mapName = null)
     {
         if (InProgressVote(server)) return VoteResult.VoteInProgress;
         if (_lastCreatedVote.ContainsKey(server) &&
-            _lastCreatedVote[server].AddSeconds(_configuration.VoteCooldown) < DateTime.UtcNow)
+            _lastCreatedVote[server].AddSeconds(Plugin.Configuration.VoteCooldown) > DateTime.UtcNow)
         {
             return VoteResult.VoteCooldown;
         }
@@ -41,7 +41,9 @@ public class VoteManager
             VoteType = voteType,
             Creation = DateTime.UtcNow,
             MapName = mapName,
-            Votes = new Dictionary<EFClient, Vote> {{origin, Vote.Yes}, {target, Vote.No}}
+            Votes = target is not null
+                ? new Dictionary<EFClient, Vote> {{origin, Vote.Yes}, {target, Vote.No}}
+                : new Dictionary<EFClient, Vote> {{origin, Vote.Yes}}
         });
 
         return VoteResult.Success;
@@ -50,7 +52,7 @@ public class VoteManager
     public VoteResult CastVote(Server server, EFClient origin, Vote vote)
     {
         if (!InProgressVote(server)) return VoteResult.NoVoteInProgress;
-        if (!_votes[server].Votes!.ContainsKey(origin)) return VoteResult.AlreadyVoted;
+        if (_votes[server].Votes!.ContainsKey(origin)) return VoteResult.AlreadyVoted;
 
         _votes[server].Votes!.Add(origin, vote);
         return VoteResult.Success;
@@ -64,24 +66,40 @@ public class VoteManager
             foreach (var server in _votes.Keys)
             {
                 // Check if anyone has left and brought it below the player threshold
-                if (server.ClientNum < _configuration.MinimumPlayersRequired)
+                // TODO: Change this back to ClientNum since we don't care for bots.
+                if (server.Clients.Count < Plugin.Configuration.MinimumPlayersRequired)
                 {
-                    _votes.Remove(server);
-                    server.Broadcast(_configuration.VoteMessages.VoteCancelledDueToPlayerDisconnect
+                    server.Broadcast(Plugin.Configuration.Translations.VoteCancelledDueToPlayerDisconnect
                         .FormatExt(_votes[server].VoteType));
+                    _votes.Remove(server);
                     continue;
                 }
 
                 // Broadcast a currently running vote.
-                if (_lastBroadcastTime.AddSeconds(_configuration.TimeBetweenVoteReminders) < DateTime.UtcNow)
+                if (_lastBroadcastTime.ContainsKey(server))
                 {
-                    server.Broadcast(_configuration.VoteMessages.OpenVoteAutoMessage
-                        .FormatExt(_votes[server].VoteType));
-                    _lastBroadcastTime = DateTime.UtcNow;
+                    if (_lastBroadcastTime[server].AddSeconds(Plugin.Configuration.TimeBetweenVoteReminders) <
+                        DateTime.UtcNow)
+                    {
+                        var yesVotes = _votes[server].Votes!.Count(vote => vote.Value == Vote.Yes);
+                        var noVotes = _votes[server].Votes!.Count(vote => vote.Value == Vote.No);
+                        server.Broadcast(Plugin.Configuration.Translations.OpenVoteAutoMessage
+                            .FormatExt(_votes[server].VoteType, yesVotes, noVotes,
+                                _votes[server].Target is not null
+                                    ? _votes[server].Target?.CleanedName
+                                    : _votes[server].VoteType is VoteType.Map
+                                        ? _votes[server].MapName
+                                        : VoteType.Skip));
+                        _lastBroadcastTime[server] = DateTime.UtcNow;
+                    }
+                }
+                else
+                {
+                    _lastBroadcastTime.Add(server, DateTime.UtcNow);
                 }
 
                 // End expired votes.
-                if (_votes[server].Creation.AddSeconds(_configuration.VoteDuration) < DateTime.UtcNow)
+                if (_votes[server].Creation.AddSeconds(Plugin.Configuration.VoteDuration) < DateTime.UtcNow)
                 {
                     await EndVote(server);
                 }
@@ -96,40 +114,51 @@ public class VoteManager
     private async Task EndVote(Server server)
     {
         // If only 2 people vote, we shouldn't really action it if there's more than 4 on the server.
-        if (_configuration.MinimumPlayersRequiredForSuccessfulVote > _votes[server].Votes!.Count)
+        if (Plugin.Configuration.MinimumPlayersRequiredForSuccessfulVote > _votes[server].Votes!.Count)
         {
-            server.Broadcast(_configuration.VoteMessages.NotEnoughVotes.FormatExt(_votes[server].VoteType,
-                _votes[server].Target?.CleanedName));
+            server.Broadcast(Plugin.Configuration.Translations.NotEnoughVotes.FormatExt(_votes[server].VoteType));
+            _votes.Remove(server);
             return;
         }
 
         var yesVotes = _votes[server].Votes!.Count(vote => vote.Value == Vote.Yes);
         var noVotes = _votes[server].Votes!.Count(vote => vote.Value == Vote.No);
         var votePercentage = (float)yesVotes / (yesVotes + noVotes);
-        if (votePercentage < _configuration.PercentageVotePassed)
+        if (votePercentage < Plugin.Configuration.VotePassPercentage)
         {
-            server.Broadcast(_configuration.VoteMessages.NotEnoughYesVotes.FormatExt(_votes[server].VoteType,
-                _votes[server].Target?.CleanedName));
+            server.Broadcast(Plugin.Configuration.Translations.NotEnoughYesVotes
+                .FormatExt(_votes[server].VoteType, yesVotes, noVotes,
+                    _votes[server].Target is not null
+                        ? _votes[server].Target?.CleanedName
+                        : _votes[server].VoteType is VoteType.Map
+                            ? _votes[server].MapName
+                            : VoteType.Skip));
+            _votes.Remove(server);
             return;
         }
 
         switch (_votes[server].VoteType)
         {
             case VoteType.Kick:
-                await server.Kick($"VOTE by {_votes[server].Origin?.ClientId}: {_votes[server].Reason}",
-                    _votes[server].Target, Utilities.IW4MAdminClient());
-                server.Broadcast($"Vote to kick {_votes[server].Target?.CleanedName} passed");
-                break;
-            case VoteType.Map:
-                await server.LoadMap(_votes[server].MapName);
+                await server.Kick(Plugin.Configuration.Translations.VoteAction
+                    .FormatExt(_votes[server].Origin?.CleanedName, _votes[server].Origin?.ClientId,
+                        _votes[server].Reason), _votes[server].Target, Utilities.IW4MAdminClient());
+                server.Broadcast(Plugin.Configuration.Translations.VotePassed
+                    .FormatExt(_votes[server].VoteType, yesVotes, noVotes, _votes[server].Target?.CleanedName));
                 break;
             case VoteType.Ban:
-                await server.TempBan($"VOTE by {_votes[server].Origin?.ClientId}: {_votes[server].Reason}",
-                    TimeSpan.FromHours(1), _votes[server].Target, Utilities.IW4MAdminClient());
-                server.Broadcast($"Vote to ban {_votes[server].Target?.CleanedName} passed");
+                await server.TempBan(Plugin.Configuration.Translations.VoteAction
+                        .FormatExt(_votes[server].Origin?.CleanedName, _votes[server].Origin?.ClientId,
+                            _votes[server].Reason), TimeSpan.FromHours(1), _votes[server].Target,
+                    Utilities.IW4MAdminClient());
+                server.Broadcast(Plugin.Configuration.Translations.VotePassed
+                    .FormatExt(_votes[server].VoteType, yesVotes, noVotes, _votes[server].Target?.CleanedName));
                 break;
             case VoteType.Skip:
                 await server.ExecuteCommandAsync("map_rotate");
+                break;
+            case VoteType.Map:
+                await server.LoadMap(_votes[server].MapName);
                 break;
         }
 
