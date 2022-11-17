@@ -6,14 +6,14 @@ Votify allows you to start or add to a vote on your server. Vote on map change, 
 
 ## Commands:
 ```
-!votemap (!vm) <map>
-!voteskip (!vs)
-!votekick (!vk) <target> <reason>
-!voteban (!vb) <target> <reason>
-!yes (!y)
-!no (!n)
+!votemap (!vm) <map> - Vote to change the map
+!voteskip (!vs) - Vote to skip the current map
+!votekick (!vk) <target> <reason> - Vote to kick a player
+!voteban (!vb) <target> <reason> - Vote to ban a player (temporary, 1 hour)
+!yes (!y) - Vote yes to an in progress vote
+!no (!n) - Vote no to an in progress vote
 
-!cancelvote (!cv) - Cancels on-going vote (Moderator)
+!cancelvote (!cv) - Cancels the current in progress vote (Moderator)
 ```
 
 Note, the configuration will create/update on load. Changes made to the configuration will need IW4MAdmin restarted.
