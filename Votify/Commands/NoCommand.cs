@@ -3,7 +3,7 @@ using SharedLibraryCore;
 using SharedLibraryCore.Configuration;
 using SharedLibraryCore.Interfaces;
 
-namespace VoteManager.Commands;
+namespace Votify.Commands;
 
 public class NoCommand : Command
 {
@@ -19,9 +19,9 @@ public class NoCommand : Command
 
     public override async Task ExecuteAsync(GameEvent gameEvent)
     {
-        if (Plugin.VoteManager.InProgressVote(gameEvent.Owner))
+        if (Plugin.Votify.InProgressVote(gameEvent.Owner))
         {
-            var result = Plugin.VoteManager.CastVote(gameEvent.Owner, gameEvent.Origin, Vote.No);
+            var result = Plugin.Votify.CastVote(gameEvent.Owner, gameEvent.Origin, Vote.No);
             switch (result)
             {
                 case VoteResult.Success:

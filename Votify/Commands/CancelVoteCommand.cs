@@ -3,7 +3,7 @@ using SharedLibraryCore;
 using SharedLibraryCore.Configuration;
 using SharedLibraryCore.Interfaces;
 
-namespace VoteManager.Commands;
+namespace Votify.Commands;
 
 public class CancelVoteCommand : Command
 {
@@ -19,9 +19,9 @@ public class CancelVoteCommand : Command
 
     public override async Task ExecuteAsync(GameEvent gameEvent)
     {
-        if (Plugin.VoteManager.InProgressVote(gameEvent.Owner))
+        if (Plugin.Votify.InProgressVote(gameEvent.Owner))
         {
-            Plugin.VoteManager.CancelVote(gameEvent.Owner);
+            Plugin.Votify.CancelVote(gameEvent.Owner);
             gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteCancelled);
         }
         else

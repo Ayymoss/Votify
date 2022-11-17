@@ -4,23 +4,28 @@ using SharedLibraryCore.Commands;
 using SharedLibraryCore.Configuration;
 using SharedLibraryCore.Interfaces;
 
-namespace VoteManager.Commands;
+namespace Votify.Commands;
 
-public class VoteMapCommand : Command
+public class VoteBanCommand : Command
 {
-    public VoteMapCommand(CommandConfiguration config, ITranslationLookup translationLookup) : base(config,
+    public VoteBanCommand(CommandConfiguration config, ITranslationLookup translationLookup) : base(config,
         translationLookup)
     {
-        Name = "votemap";
-        Description = "starts a vote to change the map";
-        Alias = "vm";
+        Name = "voteban";
+        Description = "starts a vote to ban a player";
+        Alias = "vb";
         Permission = EFClient.Permission.User;
-        RequiresTarget = false;
+        RequiresTarget = true;
         Arguments = new[]
         {
             new CommandArgument
             {
-                Name = translationLookup["COMMANDS_ARGS_MAP"],
+                Name = translationLookup["COMMANDS_ARGS_PLAYER"],
+                Required = true
+            },
+            new CommandArgument
+            {
+                Name = translationLookup["COMMANDS_ARGS_REASON"],
                 Required = true
             }
         };
@@ -28,7 +33,7 @@ public class VoteMapCommand : Command
 
     public override async Task ExecuteAsync(GameEvent gameEvent)
     {
-        if (!Plugin.Configuration.IsVoteTypeEnabled.VoteMap)
+        if (!Plugin.Configuration.IsVoteTypeEnabled.VoteBan)
         {
             gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteDisabled);
             return;
@@ -40,26 +45,25 @@ public class VoteMapCommand : Command
             return;
         }
 
-        var input = gameEvent.Data.Trim();
-        var foundMap = gameEvent.Owner.Maps.FirstOrDefault(map =>
-            map.Name.Equals(input, StringComparison.InvariantCultureIgnoreCase) ||
-            map.Alias.Equals(input, StringComparison.InvariantCultureIgnoreCase));
-
-        if (foundMap is null)
+        if (gameEvent.Origin.ClientId == gameEvent.Target.ClientId)
         {
-            gameEvent.Origin.Tell(Plugin.Configuration.Translations.MapNotFound);
+            gameEvent.Origin.Tell(Plugin.Configuration.Translations.DenySelfTarget);
             return;
         }
 
-        var result = Plugin.VoteManager.CreateVote(gameEvent.Owner, VoteType.Map, gameEvent.Origin, mapName: foundMap);
+        var result = Plugin.Votify.CreateVote(gameEvent.Owner, VoteType.Ban, gameEvent.Origin,
+            target: gameEvent.Target, reason: gameEvent.Data);
 
         switch (result)
         {
             case VoteResult.Success:
                 gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteSuccess
                     .FormatExt(Plugin.Configuration.Translations.VoteYes));
-                gameEvent.Owner.Broadcast(Plugin.Configuration.Translations.MapVoteStarted
-                    .FormatExt(gameEvent.Origin.CleanedName, foundMap.Alias));
+                gameEvent.Target.Tell(Plugin.Configuration.Translations.VoteSuccess
+                    .FormatExt(Plugin.Configuration.Translations.VoteNo));
+                gameEvent.Owner.Broadcast(Plugin.Configuration.Translations.KickBanVoteStarted
+                    .FormatExt(gameEvent.Origin.CleanedName, VoteType.Ban, gameEvent.Target.CleanedName,
+                        gameEvent.Data));
                 break;
             case VoteResult.VoteInProgress:
                 gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteInProgress);

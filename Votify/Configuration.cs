@@ -1,6 +1,6 @@
 ﻿using SharedLibraryCore.Interfaces;
 
-namespace VoteManager;
+namespace Votify;
 
 public class ConfigurationModel : IBaseConfiguration
 {

@@ -4,7 +4,7 @@ using SharedLibraryCore.Commands;
 using SharedLibraryCore.Configuration;
 using SharedLibraryCore.Interfaces;
 
-namespace VoteManager.Commands;
+namespace Votify.Commands;
 
 public class VoteKickCommand : Command
 {
@@ -51,7 +51,7 @@ public class VoteKickCommand : Command
             return;
         }
 
-        var result = Plugin.VoteManager.CreateVote(gameEvent.Owner, VoteType.Kick, gameEvent.Origin,
+        var result = Plugin.Votify.CreateVote(gameEvent.Owner, VoteType.Kick, gameEvent.Origin,
             target: gameEvent.Target, reason: gameEvent.Data);
 
         switch (result)

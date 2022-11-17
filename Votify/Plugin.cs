@@ -1,15 +1,15 @@
 ﻿using SharedLibraryCore;
 using SharedLibraryCore.Interfaces;
 
-namespace VoteManager;
+namespace Votify;
 
 public class Plugin : IPlugin
 {
     private readonly IConfigurationHandler<ConfigurationModel> _configurationHandler;
     public static ConfigurationModel Configuration = null!;
-    public static readonly VoteManager VoteManager = new();
+    public static readonly Votify Votify = new();
 
-    private const string PluginName = "Vote Manager";
+    private const string PluginName = "Votify";
     public string Name => PluginName;
     public float Version => 20221116f;
     public string Author => "Amos";
@@ -26,10 +26,10 @@ public class Plugin : IPlugin
         switch (gameEvent.Type)
         {
             case GameEvent.EventType.Disconnect:
-                VoteManager.HandleDisconnect(server, gameEvent.Origin);
+                Votify.HandleDisconnect(server, gameEvent.Origin);
                 break;
             case GameEvent.EventType.Update:
-                await VoteManager.OnUpdate();
+                await Votify.OnUpdate();
                 break;
         }
     }

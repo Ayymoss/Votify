@@ -1,9 +1,9 @@
 ﻿using SharedLibraryCore;
 using SharedLibraryCore.Database.Models;
 
-namespace VoteManager;
+namespace Votify;
 
-public class VoteManager
+public class Votify
 {
     private readonly Dictionary<Server, VoteModel> _votes = new();
     private readonly Dictionary<Server, DateTime> _lastBroadcastTime = new();

@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VoteManager", "VoteManager\VoteManager.csproj", "{AE0AA430-CA6D-464F-BDDF-F6F0301433CC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Votify", "Votify\Votify.csproj", "{AE0AA430-CA6D-464F-BDDF-F6F0301433CC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
