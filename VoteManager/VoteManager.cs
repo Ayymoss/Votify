@@ -5,23 +5,17 @@ namespace VoteManager;
 
 public class VoteManager
 {
-    //private readonly ConfigurationModel _configuration;
     private readonly Dictionary<Server, VoteModel> _votes = new();
     private readonly Dictionary<Server, DateTime> _lastBroadcastTime = new();
     private readonly Dictionary<Server, DateTime> _lastCreatedVote = new();
     private readonly SemaphoreSlim _onUpdateLock = new(1, 1);
-
-    //public VoteManager(ConfigurationModel configuration)
-    //{
-    //    _configuration = configuration;
-    //}
 
     public bool InProgressVote(Server server) => _votes.ContainsKey(server);
 
     public void CancelVote(Server server) => _votes.Remove(server);
 
     public VoteResult CreateVote(Server server, VoteType voteType, EFClient origin, EFClient? target = null,
-        string? reason = null, string? mapName = null)
+        string? reason = null, Map? mapName = null)
     {
         if (InProgressVote(server)) return VoteResult.VoteInProgress;
         if (_lastCreatedVote.ContainsKey(server) &&
@@ -40,7 +34,7 @@ public class VoteManager
             Reason = reason,
             VoteType = voteType,
             Creation = DateTime.UtcNow,
-            MapName = mapName,
+            Map = mapName,
             Votes = target is not null
                 ? new Dictionary<EFClient, Vote> {{origin, Vote.Yes}, {target, Vote.No}}
                 : new Dictionary<EFClient, Vote> {{origin, Vote.Yes}}
@@ -66,8 +60,7 @@ public class VoteManager
             foreach (var server in _votes.Keys)
             {
                 // Check if anyone has left and brought it below the player threshold
-                // TODO: Change this back to ClientNum since we don't care for bots.
-                if (server.Clients.Count < Plugin.Configuration.MinimumPlayersRequired)
+                if (server.ClientNum < Plugin.Configuration.MinimumPlayersRequired)
                 {
                     server.Broadcast(Plugin.Configuration.Translations.VoteCancelledDueToPlayerDisconnect
                         .FormatExt(_votes[server].VoteType));
@@ -88,7 +81,7 @@ public class VoteManager
                                 _votes[server].Target is not null
                                     ? _votes[server].Target?.CleanedName
                                     : _votes[server].VoteType is VoteType.Map
-                                        ? _votes[server].MapName
+                                        ? _votes[server].Map?.Alias
                                         : VoteType.Skip));
                         _lastBroadcastTime[server] = DateTime.UtcNow;
                     }
@@ -113,7 +106,7 @@ public class VoteManager
 
     private async Task EndVote(Server server)
     {
-        // If only 2 people vote, we shouldn't really action it if there's more than 4 on the server.
+        // If only few people vote, we shouldn't really action it if there's more than more on the server.
         if (Plugin.Configuration.MinimumPlayersRequiredForSuccessfulVote > _votes[server].Votes!.Count)
         {
             server.Broadcast(Plugin.Configuration.Translations.NotEnoughVotes.FormatExt(_votes[server].VoteType));
@@ -131,7 +124,7 @@ public class VoteManager
                     _votes[server].Target is not null
                         ? _votes[server].Target?.CleanedName
                         : _votes[server].VoteType is VoteType.Map
-                            ? _votes[server].MapName
+                            ? _votes[server].Map?.Alias
                             : VoteType.Skip));
             _votes.Remove(server);
             return;
@@ -158,7 +151,7 @@ public class VoteManager
                 await server.ExecuteCommandAsync("map_rotate");
                 break;
             case VoteType.Map:
-                await server.LoadMap(_votes[server].MapName);
+                await server.LoadMap(_votes[server].Map?.Name);
                 break;
         }
 
@@ -168,8 +161,16 @@ public class VoteManager
     public void HandleDisconnect(Server server, EFClient client)
     {
         if (!InProgressVote(server)) return;
-        foreach (var vote in _votes.Values.Where(vote =>
-                     vote.Origin?.ClientId == client.ClientId || vote.Target?.ClientId == client.ClientId))
+        
+        if (_votes[server].VoteType == VoteType.Kick && _votes[server].Target?.ClientId == client.ClientId)
+        {
+            server.Broadcast(Plugin.Configuration.Translations.VoteKickCancelledDueToTargetDisconnect);
+            _votes.Remove(server);
+            return;
+        }
+
+        foreach (var vote in _votes.Values.Where(vote => vote.Origin?.ClientId == client.ClientId
+                                                         || vote.Target?.ClientId == client.ClientId))
         {
             vote.Votes?.Remove(client);
         }
@@ -183,7 +184,7 @@ public class VoteModel
     public string? Reason { get; set; }
     public VoteType VoteType { get; set; }
     public DateTime Creation { get; set; }
-    public string? MapName { get; set; }
+    public Map? Map { get; set; }
     public Dictionary<EFClient, Vote>? Votes { get; set; }
 }
 

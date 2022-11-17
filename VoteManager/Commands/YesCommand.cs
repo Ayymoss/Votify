@@ -25,7 +25,8 @@ public class YesCommand : Command
             switch (result)
             {
                 case VoteResult.Success:
-                    gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteSuccess);
+                    gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteSuccess
+                        .FormatExt(Plugin.Configuration.Translations.VoteYes));
                     break;
                 case VoteResult.NoVoteInProgress:
                     gameEvent.Origin.Tell(Plugin.Configuration.Translations.NoVoteInProgress);

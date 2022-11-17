@@ -25,7 +25,8 @@ public class NoCommand : Command
             switch (result)
             {
                 case VoteResult.Success:
-                    gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteSuccess);
+                    gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteSuccess
+                        .FormatExt(Plugin.Configuration.Translations.VoteNo));
                     break;
                 case VoteResult.NoVoteInProgress:
                     gameEvent.Origin.Tell(Plugin.Configuration.Translations.NoVoteInProgress);

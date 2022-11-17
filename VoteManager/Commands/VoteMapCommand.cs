@@ -33,26 +33,33 @@ public class VoteMapCommand : Command
             gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteDisabled);
             return;
         }
-        
+
+        if (Plugin.Configuration.MinimumPlayersRequired > gameEvent.Owner.ClientNum)
+        {
+            gameEvent.Origin.Tell(Plugin.Configuration.Translations.NotEnoughPlayers);
+            return;
+        }
+
         var input = gameEvent.Data.Trim();
         var foundMap = gameEvent.Owner.Maps.FirstOrDefault(map =>
             map.Name.Equals(input, StringComparison.InvariantCultureIgnoreCase) ||
             map.Alias.Equals(input, StringComparison.InvariantCultureIgnoreCase));
-        
+
         if (foundMap is null)
         {
             gameEvent.Origin.Tell(Plugin.Configuration.Translations.MapNotFound);
             return;
         }
 
-        var result = Plugin.VoteManager.CreateVote(gameEvent.Owner, VoteType.Map,gameEvent.Origin, mapName: foundMap.Name);
+        var result = Plugin.VoteManager.CreateVote(gameEvent.Owner, VoteType.Map, gameEvent.Origin, mapName: foundMap);
 
         switch (result)
         {
             case VoteResult.Success:
-                gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteSuccess);
+                gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteSuccess
+                    .FormatExt(Plugin.Configuration.Translations.VoteYes));
                 gameEvent.Owner.Broadcast(Plugin.Configuration.Translations.MapVoteStarted
-                    .FormatExt(gameEvent.Origin.CleanedName, foundMap.Name));
+                    .FormatExt(gameEvent.Origin.CleanedName, foundMap.Alias));
                 break;
             case VoteResult.VoteInProgress:
                 gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteInProgress);

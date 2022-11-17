@@ -26,12 +26,19 @@ public class VoteSkipCommand : Command
             return;
         }
 
+        if (Plugin.Configuration.MinimumPlayersRequired > gameEvent.Owner.ClientNum)
+        {
+            gameEvent.Origin.Tell(Plugin.Configuration.Translations.NotEnoughPlayers);
+            return;
+        }
+
         var result = Plugin.VoteManager.CreateVote(gameEvent.Owner, VoteType.Skip, gameEvent.Origin);
 
         switch (result)
         {
             case VoteResult.Success:
-                gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteSuccess);
+                gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteSuccess
+                    .FormatExt(Plugin.Configuration.Translations.VoteYes));
                 gameEvent.Owner.Broadcast(Plugin.Configuration.Translations.SkipVoteStarted
                     .FormatExt(gameEvent.Origin.CleanedName));
                 break;
