@@ -38,6 +38,18 @@ public class VoteBanCommand : Command
             gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteDisabled);
             return;
         }
+        
+        if (gameEvent.Target.IsBot)
+        {
+            gameEvent.Origin.Tell(Plugin.Configuration.Translations.CannotVoteBot);
+            return;
+        }
+
+        if (gameEvent.Target.Level is not EFClient.Permission.User)
+        {
+            gameEvent.Origin.Tell(Plugin.Configuration.Translations.CannotVoteRanked);
+            return;
+        }
 
         if (Plugin.Configuration.MinimumPlayersRequired > gameEvent.Owner.ClientNum)
         {

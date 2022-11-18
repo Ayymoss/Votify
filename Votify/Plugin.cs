@@ -11,7 +11,7 @@ public class Plugin : IPlugin
 
     private const string PluginName = "Votify";
     public string Name => PluginName;
-    public float Version => 20221116f;
+    public float Version => 20221118f;
     public string Author => "Amos";
 
     public Plugin(IConfigurationHandler<ConfigurationModel> configurationHandler)

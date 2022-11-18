@@ -48,6 +48,8 @@ public class Translation
     public string NotEnoughPlayers { get; set; } = "(Color::Yellow)VOTE(Color::White): Not enough players to start a vote";
     public string VoteKickCancelledDueToTargetDisconnect { get; set; } = "(Color::Yellow)VOTE(Color::White): Vote kick cancelled due to target disconnect";
     public string DenySelfTarget { get; set; } = "(Color::Yellow)VOTE(Color::White): You cannot target yourself";
+    public string CannotVoteBot { get; set; } = "(Color::Yellow)VOTE(Color::White): You cannot vote on bots";
+    public string CannotVoteRanked { get; set; } = "(Color::Yellow)VOTE(Color::White): You cannot vote on ranked players";
     public string VoteYes { get; set; } = "(Color::Green)Yes(Color::White)";
     public string VoteNo { get; set; } = "(Color::Red)No(Color::White)";
     
