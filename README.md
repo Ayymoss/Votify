@@ -26,7 +26,6 @@ Suggestions? Contact Ayymoss#8334 on Discord.
 
 ## Configuration:
 ```
-
   "IsEnabled": true, // Enable or Disable the plugin.
   "VotePassPercentage": 0.51, // Percentage of yes to no votes required to pass the vote.
   "MinimumPlayersRequired": 4, // Minimum numbers of players required to initiate a vote.
