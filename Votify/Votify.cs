@@ -1,18 +1,19 @@
-﻿using SharedLibraryCore;
+﻿using System.Collections.Concurrent;
+using SharedLibraryCore;
 using SharedLibraryCore.Database.Models;
 
 namespace Votify;
 
 public class Votify
 {
-    private readonly Dictionary<Server, VoteModel> _votes = new();
+    private readonly ConcurrentDictionary<Server, VoteModel> _votes = new();
     private readonly Dictionary<Server, DateTime> _lastBroadcastTime = new();
     private readonly Dictionary<Server, DateTime> _lastCreatedVote = new();
     private readonly SemaphoreSlim _onUpdateLock = new(1, 1);
 
     public bool InProgressVote(Server server) => _votes.ContainsKey(server);
 
-    public void CancelVote(Server server) => _votes.Remove(server);
+    public void CancelVote(Server server) => _votes.Remove(server, out _);
 
     public VoteResult CreateVote(Server server, VoteType voteType, EFClient origin, EFClient? target = null,
         string? reason = null, Map? mapName = null)
@@ -27,7 +28,7 @@ public class Votify
         if (_lastCreatedVote.ContainsKey(server)) _lastCreatedVote.Remove(server);
         _lastCreatedVote.Add(server, DateTime.UtcNow);
 
-        _votes.Add(server, new VoteModel
+        _votes.TryAdd(server, new VoteModel
         {
             Origin = origin,
             Target = target,
@@ -57,14 +58,14 @@ public class Votify
         try
         {
             await _onUpdateLock.WaitAsync();
-            foreach (var server in _votes.Keys)
+            foreach (var server in _votes.Keys.ToList())
             {
                 // Check if anyone has left and brought it below the player threshold
                 if (server.ClientNum < Plugin.Configuration.MinimumPlayersRequired)
                 {
                     server.Broadcast(Plugin.Configuration.Translations.VoteCancelledDueToPlayerDisconnect
                         .FormatExt(_votes[server].VoteType));
-                    _votes.Remove(server);
+                    _votes.Remove(server, out _);
                     continue;
                 }
 
@@ -74,7 +75,7 @@ public class Votify
                     if (_lastBroadcastTime[server].AddSeconds(Plugin.Configuration.TimeBetweenVoteReminders) <
                         DateTime.UtcNow)
                     {
-                        var yesVotes = _votes[server].Votes!.Count(vote => vote.Value == Vote.Yes);
+                        var yesVotes = _votes[server].Votes!.Count(vote => vote.Value == Vote.Yes); //TODO: Provide counts from dictionary model
                         var noVotes = _votes[server].Votes!.Count(vote => vote.Value == Vote.No);
                         server.Broadcast(Plugin.Configuration.Translations.OpenVoteAutoMessage
                             .FormatExt(_votes[server].VoteType, yesVotes, noVotes,
@@ -92,7 +93,7 @@ public class Votify
                 }
 
                 // End expired votes.
-                if (_votes[server].Creation.AddSeconds(Plugin.Configuration.VoteDuration) < DateTime.UtcNow)
+                if (_votes[server].Creation.AddSeconds(Plugin.Configuration.VoteDuration) < DateTime.UtcNow) //TODO: Change the order so that I'm adding to current time rather than Dict Value
                 {
                     await EndVote(server);
                 }
@@ -110,10 +111,11 @@ public class Votify
         if (Plugin.Configuration.MinimumPlayersRequiredForSuccessfulVote > _votes[server].Votes!.Count)
         {
             server.Broadcast(Plugin.Configuration.Translations.NotEnoughVotes.FormatExt(_votes[server].VoteType));
-            _votes.Remove(server);
+            _votes.Remove(server, out _); 
             return;
         }
 
+        // Check if the vote passed or failed.
         var yesVotes = _votes[server].Votes!.Count(vote => vote.Value == Vote.Yes);
         var noVotes = _votes[server].Votes!.Count(vote => vote.Value == Vote.No);
         var votePercentage = (float)yesVotes / (yesVotes + noVotes);
@@ -126,10 +128,11 @@ public class Votify
                         : _votes[server].VoteType is VoteType.Map
                             ? _votes[server].Map?.Alias
                             : VoteType.Skip));
-            _votes.Remove(server);
+            _votes.Remove(server, out _);
             return;
         }
 
+        // Vote passed, perform the action.
         switch (_votes[server].VoteType)
         {
             case VoteType.Kick:
@@ -155,7 +158,7 @@ public class Votify
                 break;
         }
 
-        _votes.Remove(server);
+        _votes.Remove(server, out _);
     }
 
     public void HandleDisconnect(Server server, EFClient client)
@@ -165,7 +168,7 @@ public class Votify
         if (_votes[server].VoteType == VoteType.Kick && _votes[server].Target?.ClientId == client.ClientId)
         {
             server.Broadcast(Plugin.Configuration.Translations.VoteKickCancelledDueToTargetDisconnect);
-            _votes.Remove(server);
+            _votes.Remove(server, out _);
             return;
         }
 

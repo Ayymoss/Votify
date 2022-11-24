@@ -11,7 +11,7 @@ public class Plugin : IPlugin
 
     private const string PluginName = "Votify";
     public string Name => PluginName;
-    public float Version => 20221118f;
+    public float Version => 20221124f;
     public string Author => "Amos";
 
     public Plugin(IConfigurationHandler<ConfigurationModel> configurationHandler)
@@ -50,6 +50,7 @@ public class Plugin : IPlugin
         }
 
         Configuration = _configurationHandler.Configuration();
+        Console.WriteLine($"[{PluginName}] loaded. Version: {Version}");
     }
 
     public Task OnUnloadAsync()
