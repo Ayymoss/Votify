@@ -21,3 +21,24 @@ Note, the configuration will create/update on load. Changes made to the configur
 Configuration is in `Configuration/VotifySettings.json`
 
 Suggestions? Contact Ayymoss#8334 on Discord.
+
+***
+
+## Configuration:
+```
+// DO NOT COPY - THE CONFIG IS GENERATED AT RUNTIME
+
+  "IsEnabled": true, // Enable or Disable the plugin.
+  "VotePassPercentage": 0.51, // Percentage of yes to no votes required to pass the vote.
+  "MinimumPlayersRequired": 4, // Minimum numbers of players required to initiate a vote.
+  "MinimumPlayersRequiredForSuccessfulVote": 3, // Minimum number of votes required for a successful vote.
+  "VoteDuration": 30, // Length (Seconds) of time the vote runs for.
+  "VoteCooldown": 60, // Length (Seconds) of time before the next vote can be initiated.
+  "TimeBetweenVoteReminders": 5, // Length (Seconds) between each server announcement of the vote.
+  "IsVoteTypeEnabled": {
+    "VoteBan": false, // Enable or Disable the ability to vote ban.
+    "VoteKick": true, // Enable or Disable the ability to vote kick.
+    "VoteMap": true, // Enable or Disable the ability to vote map change.
+    "VoteSkip": true // Enable or Disable the ability to vote map skip.
+  },
+```
