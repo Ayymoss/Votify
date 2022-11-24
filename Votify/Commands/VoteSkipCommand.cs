@@ -22,7 +22,7 @@ public class VoteSkipCommand : Command
     {
         if (!Plugin.Configuration.IsVoteTypeEnabled.VoteSkip)
         {
-            gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteDisabled);
+            gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteDisabled.FormatExt(VoteType.Skip));
             return;
         }
 

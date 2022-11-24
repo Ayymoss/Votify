@@ -30,7 +30,7 @@ public class VoteMapCommand : Command
     {
         if (!Plugin.Configuration.IsVoteTypeEnabled.VoteMap)
         {
-            gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteDisabled);
+            gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteDisabled.FormatExt(VoteType.Map));
             return;
         }
 
@@ -51,7 +51,7 @@ public class VoteMapCommand : Command
             return;
         }
 
-        var result = Plugin.Votify.CreateVote(gameEvent.Owner, VoteType.Map, gameEvent.Origin, mapName: foundMap);
+        var result = Plugin.Votify.CreateVote(gameEvent.Owner, VoteType.Map, gameEvent.Origin, map: foundMap);
 
         switch (result)
         {

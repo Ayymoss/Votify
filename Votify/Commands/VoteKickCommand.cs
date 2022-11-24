@@ -35,13 +35,19 @@ public class VoteKickCommand : Command
     {
         if (!Plugin.Configuration.IsVoteTypeEnabled.VoteKick)
         {
-            gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteDisabled);
+            gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteDisabled.FormatExt(VoteType.Kick));
             return;
         }
         
         if (gameEvent.Target.IsBot)
         {
             gameEvent.Origin.Tell(Plugin.Configuration.Translations.CannotVoteBot);
+            return;
+        }
+        
+        if (gameEvent.Origin.ClientId == gameEvent.Target.ClientId)
+        {
+            gameEvent.Origin.Tell(Plugin.Configuration.Translations.DenySelfTarget);
             return;
         }
 
@@ -56,13 +62,7 @@ public class VoteKickCommand : Command
             gameEvent.Origin.Tell(Plugin.Configuration.Translations.NotEnoughPlayers);
             return;
         }
-
-        if (gameEvent.Origin.ClientId == gameEvent.Target.ClientId)
-        {
-            gameEvent.Origin.Tell(Plugin.Configuration.Translations.DenySelfTarget);
-            return;
-        }
-
+        
         var result = Plugin.Votify.CreateVote(gameEvent.Owner, VoteType.Kick, gameEvent.Origin,
             target: gameEvent.Target, reason: gameEvent.Data);
 

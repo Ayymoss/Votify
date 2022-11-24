@@ -35,13 +35,19 @@ public class VoteBanCommand : Command
     {
         if (!Plugin.Configuration.IsVoteTypeEnabled.VoteBan)
         {
-            gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteDisabled);
+            gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteDisabled.FormatExt(VoteType.Ban));
             return;
         }
         
         if (gameEvent.Target.IsBot)
         {
             gameEvent.Origin.Tell(Plugin.Configuration.Translations.CannotVoteBot);
+            return;
+        }
+        
+        if (gameEvent.Origin.ClientId == gameEvent.Target.ClientId)
+        {
+            gameEvent.Origin.Tell(Plugin.Configuration.Translations.DenySelfTarget);
             return;
         }
 
@@ -54,12 +60,6 @@ public class VoteBanCommand : Command
         if (Plugin.Configuration.MinimumPlayersRequired > gameEvent.Owner.ClientNum)
         {
             gameEvent.Origin.Tell(Plugin.Configuration.Translations.NotEnoughPlayers);
-            return;
-        }
-
-        if (gameEvent.Origin.ClientId == gameEvent.Target.ClientId)
-        {
-            gameEvent.Origin.Tell(Plugin.Configuration.Translations.DenySelfTarget);
             return;
         }
 
