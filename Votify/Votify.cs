@@ -119,8 +119,12 @@ public class Votify
 
     private async Task EndVote(Server server)
     {
-        // If only few people vote, we shouldn't really action it if there's X than Y on the server. (16 people on server, 2 vote. Shouldn't action)
-        if (Plugin.Configuration.MinimumPlayersRequiredForSuccessfulVote > _votes[server].Votes!.Count)
+        // Cancel the vote if there's not enough votes.
+        var yesVotes = _votes[server].YesVotes;
+        var noVotes = _votes[server].NoVotes;
+        var totalVotes = yesVotes + noVotes;
+        var playerVotePercentage = (float)totalVotes / server.ClientNum;
+        if (Plugin.Configuration.MinimumVotingPlayersPercentage > playerVotePercentage)
         {
             server.Broadcast(Plugin.Configuration.Translations.NotEnoughVotes.FormatExt(_votes[server].VoteType));
             _votes.Remove(server, out _);
@@ -128,9 +132,7 @@ public class Votify
         }
 
         // Check if the vote passed or failed.
-        var yesVotes = _votes[server].YesVotes;
-        var noVotes = _votes[server].NoVotes;
-        var votePercentage = (float)yesVotes / (yesVotes + noVotes);
+        var votePercentage = (float)yesVotes / totalVotes;
         if (Plugin.Configuration.VotePassPercentage > votePercentage)
         {
             server.Broadcast(Plugin.Configuration.Translations.NotEnoughYesVotes

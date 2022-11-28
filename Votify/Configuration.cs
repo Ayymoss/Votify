@@ -4,14 +4,49 @@ namespace Votify;
 
 public class ConfigurationModel : IBaseConfiguration
 {
+    /// <summary>
+    /// Enable or disable the plugin
+    /// </summary>
     public bool IsEnabled { get; set; } = true;
+    
+    /// <summary>
+    /// Required percentage of yes votes to pass a vote
+    /// </summary>
     public float VotePassPercentage { get; set; } = 0.51f;
+    
+    /// <summary>
+    /// Required number of voters to pass a vote
+    /// </summary>
+    public float MinimumVotingPlayersPercentage { get; set; } = 0.35f;
+    
+    /// <summary>
+    /// Required number of players to start a vote
+    /// </summary>
     public int MinimumPlayersRequired { get; set; } = 4;
-    public int MinimumPlayersRequiredForSuccessfulVote { get; set; } = 3;
+    
+    /// <summary>
+    /// Length of duration in seconds a vote will last
+    /// </summary>
     public int VoteDuration { get; set; } = 30;
+    
+    /// <summary>
+    /// Length of duration in seconds until the next vote can be started
+    /// </summary>
     public int VoteCooldown { get; set; } = 60;
+    
+    /// <summary>
+    /// Interval in seconds between vote broadcast messages
+    /// </summary>
     public int TimeBetweenVoteReminders { get; set; } = 5;
+    
+    /// <summary>
+    /// Enabled or disabled vote types
+    /// </summary>
     public VoteTypeConfiguration IsVoteTypeEnabled { get; set; } = new();
+    
+    /// <summary>
+    /// Translation strings for the plugin
+    /// </summary>
     public Translation Translations { get; set; } = new();
 
     public string Name() => "VotifySettings";
@@ -20,9 +55,24 @@ public class ConfigurationModel : IBaseConfiguration
 
 public class VoteTypeConfiguration
 {
+    /// <summary>
+    /// Enable or disable Vote Ban
+    /// </summary>
     public bool VoteBan { get; set; } = false;
+    
+    /// <summary>
+    /// Enable or disable Vote Kick
+    /// </summary>
     public bool VoteKick { get; set; } = true;
+    
+    /// <summary>
+    /// Enable or disable Vote Map
+    /// </summary>
     public bool VoteMap { get; set; } = true;
+    
+    /// <summary>
+    /// Enable or disable Vote Skip
+    /// </summary>
     public bool VoteSkip { get; set; } = true;
 }
 

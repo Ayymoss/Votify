@@ -3,7 +3,6 @@
 Votify allows you to start or add to a vote on your server. Vote on map change, map skip, kicking a player or banning a player.
 
 ***
-
 ## Commands:
 ```
 !votemap (!vm) <map> - Vote to change the map
@@ -23,7 +22,6 @@ Configuration is in `Configuration/VotifySettings.json`
 Suggestions? Contact Ayymoss#8334 on Discord.
 
 ***
-
 ## Configuration:
 ```
 // DO NOT COPY - THE CONFIG IS GENERATED AT RUNTIME
