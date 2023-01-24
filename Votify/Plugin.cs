@@ -14,9 +14,9 @@ public class Plugin : IPlugin
     public float Version => 20221124f;
     public string Author => "Amos";
 
-    public Plugin(IConfigurationHandler<ConfigurationModel> configurationHandler)
+    public Plugin(IConfigurationHandlerFactory configurationHandlerFactory)
     {
-        _configurationHandler = configurationHandler;
+        _configurationHandler = configurationHandlerFactory.GetConfigurationHandler<ConfigurationModel>("VotifySettings");
     }
 
     public async Task OnEventAsync(GameEvent gameEvent, Server server)
@@ -41,13 +41,9 @@ public class Plugin : IPlugin
         {
             Console.WriteLine($"[{PluginName}] Configuration not found, creating.");
             _configurationHandler.Set(new ConfigurationModel());
-            await _configurationHandler.Save();
-            await _configurationHandler.BuildAsync();
         }
-        else
-        {
-            await _configurationHandler.Save();
-        }
+
+        await _configurationHandler.Save();
 
         Configuration = _configurationHandler.Configuration();
         Console.WriteLine($"[{PluginName}] loaded. Version: {Version}");

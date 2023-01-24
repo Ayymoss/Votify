@@ -49,7 +49,7 @@ public class ConfigurationModel : IBaseConfiguration
     /// </summary>
     public Translation Translations { get; set; } = new();
 
-    public string Name() => "VotifySettings";
+    public string Name() => "Votify";
     public IBaseConfiguration Generate() => new ConfigurationModel();
 }
 
