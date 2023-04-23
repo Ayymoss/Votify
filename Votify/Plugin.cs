@@ -27,7 +27,7 @@ public class Plugin : IPluginV2
 
     public static void RegisterDependencies(IServiceCollection serviceCollection)
     {
-        serviceCollection.AddConfiguration<VoteConfiguration>("VotifySettings");
+        serviceCollection.AddConfiguration("VotifySettings", new VoteConfiguration());
         serviceCollection.AddSingleton<VoteManager>();
     }
 

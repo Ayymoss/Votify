@@ -2,7 +2,7 @@
 
 namespace Votify;
 
-public class VoteConfiguration : IBaseConfiguration
+public class VoteConfiguration
 {
     /// <summary>
     /// Enable or disable the plugin
@@ -58,9 +58,6 @@ public class VoteConfiguration : IBaseConfiguration
     /// For debugging purposes
     /// </summary>
     public bool IsDebug { get; set; } = false;
-
-    public string Name() => "Votify";
-    public IBaseConfiguration Generate() => new VoteConfiguration();
 }
 
 public class VoteTypeConfiguration

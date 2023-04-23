@@ -25,26 +25,16 @@ public class VoteManager
         string? reason = null, Map? map = null)
     {
         if (InProgressVote(server)) return VoteEnums.VoteResult.VoteInProgress;
+
         if (_lastCreatedVote.ContainsKey(server) && DateTimeOffset.UtcNow - _lastCreatedVote[server] <
             TimeSpan.FromSeconds(_voteConfig.VoteCooldown))
         {
             return VoteEnums.VoteResult.VoteCooldown;
         }
 
-        if (_lastCreatedVote.ContainsKey(server)) _lastCreatedVote.TryRemove(server, out _);
-        _lastCreatedVote.TryAdd(server, DateTimeOffset.UtcNow);
+        UpdateLastCreatedVote(server);
 
-        var votes = new ConcurrentDictionary<EFClient, VoteEnums.Vote>();
-        if (target is not null)
-        {
-            votes.TryAdd(origin, VoteEnums.Vote.Yes);
-            votes.TryAdd(target, VoteEnums.Vote.No);
-        }
-        else
-        {
-            votes.TryAdd(origin, VoteEnums.Vote.Yes);
-        }
-
+        var votes = InitializeVotes(origin, target);
         _votes.TryAdd(server, new VoteModel
         {
             Origin = origin,
@@ -61,13 +51,33 @@ public class VoteManager
         return VoteEnums.VoteResult.Success;
     }
 
+    private ConcurrentDictionary<EFClient, VoteEnums.Vote> InitializeVotes(EFClient origin, EFClient? target)
+    {
+        var votes = new ConcurrentDictionary<EFClient, VoteEnums.Vote> {[origin] = VoteEnums.Vote.Yes};
+        if (target != null) votes[target] = VoteEnums.Vote.No;
+        return votes;
+    }
+
+    private void UpdateLastCreatedVote(Server server)
+    {
+        if (_lastCreatedVote.ContainsKey(server)) _lastCreatedVote.TryRemove(server, out _);
+        _lastCreatedVote.TryAdd(server, DateTimeOffset.UtcNow);
+    }
+
     public VoteEnums.VoteResult CastVote(Server server, EFClient origin, VoteEnums.Vote vote)
     {
         if (!InProgressVote(server)) return VoteEnums.VoteResult.NoVoteInProgress;
+
         if (_votes[server].Votes!.ContainsKey(origin)) return VoteEnums.VoteResult.AlreadyVoted;
 
-        _votes[server].Votes!.TryAdd(origin, vote);
+        _votes[server].Votes.TryAdd(origin, vote);
+        UpdateVoteCount(server, vote);
 
+        return VoteEnums.VoteResult.Success;
+    }
+
+    private void UpdateVoteCount(Server server, VoteEnums.Vote vote)
+    {
         switch (vote)
         {
             case VoteEnums.Vote.Yes:
@@ -77,8 +87,6 @@ public class VoteManager
                 _votes[server].NoVotes++;
                 break;
         }
-
-        return VoteEnums.VoteResult.Success;
     }
 
     public async Task OnNotify()
@@ -88,34 +96,20 @@ public class VoteManager
             await _onUpdateLock.WaitAsync();
             foreach (var server in _votes.Keys.ToList())
             {
-                // Check if anyone has left and brought it below the player threshold
+                var vote = _votes[server];
+
                 if (_voteConfig.MinimumPlayersRequired > server.ClientNum)
                 {
                     server.Broadcast(_voteConfig.Translations.VoteCancelledDueToPlayerDisconnect
-                        .FormatExt(_votes[server].VoteType));
+                        .FormatExt(vote.VoteType));
                     _votes.TryRemove(server, out _);
                     continue;
                 }
 
-                // Broadcast a currently running vote.
-                if (_lastBroadcastTime.ContainsKey(server))
-                {
-                    server.Broadcast(_voteConfig.Translations.OpenVoteAutoMessage
-                        .FormatExt(_votes[server].VoteType, _votes[server].YesVotes, _votes[server].NoVotes,
-                            _votes[server].Target is not null
-                                ? _votes[server].Target?.CurrentAlias.Name
-                                : _votes[server].VoteType is VoteEnums.VoteType.Map
-                                    ? _votes[server].Map?.Alias
-                                    : VoteEnums.VoteType.Skip));
-                    _lastBroadcastTime[server] = DateTimeOffset.UtcNow;
-                }
-                else
-                {
-                    _lastBroadcastTime.TryAdd(server, DateTimeOffset.UtcNow);
-                }
+                BroadcastRunningVote(server, vote);
+                UpdateBroadcastTime(server);
 
-                // End expired votes.
-                if (DateTimeOffset.UtcNow - _votes[server].Creation >
+                if (DateTimeOffset.UtcNow - vote.Creation >
                     TimeSpan.FromSeconds(_voteConfig.VoteDuration))
                 {
                     await EndVote(server);
@@ -128,62 +122,82 @@ public class VoteManager
         }
     }
 
+    private void BroadcastRunningVote(Server server, VoteModel vote)
+    {
+        var target = vote.Target?.CurrentAlias.Name ?? GetVoteTarget(vote);
+        server.Broadcast(_voteConfig.Translations.OpenVoteAutoMessage
+            .FormatExt(vote.VoteType, vote.YesVotes, vote.NoVotes, target));
+    }
+
+    private void UpdateBroadcastTime(Server server)
+    {
+        if (_lastBroadcastTime.ContainsKey(server))
+        {
+            _lastBroadcastTime[server] = DateTimeOffset.UtcNow;
+        }
+        else
+        {
+            _lastBroadcastTime.TryAdd(server, DateTimeOffset.UtcNow);
+        }
+    }
+
     private async Task EndVote(Server server)
     {
-        // Cancel the vote if there's not enough votes.
-        var yesVotes = _votes[server].YesVotes;
-        var noVotes = _votes[server].NoVotes;
+        var vote = _votes[server];
+        var yesVotes = vote.YesVotes;
+        var noVotes = vote.NoVotes;
         var totalVotes = yesVotes + noVotes;
         var playerVotePercentage = (float)totalVotes / server.ClientNum;
+
         if (_voteConfig.MinimumVotingPlayersPercentage > playerVotePercentage)
         {
-            server.Broadcast(_voteConfig.Translations.NotEnoughVotes.FormatExt(_votes[server].VoteType));
+            server.Broadcast(_voteConfig.Translations.NotEnoughVotes.FormatExt(vote.VoteType));
             _votes.TryRemove(server, out _);
             return;
         }
 
-        // Check if the vote passed or failed.
         var votePercentage = (float)yesVotes / totalVotes;
         if (_voteConfig.VotePassPercentage > votePercentage)
         {
-            server.Broadcast(_voteConfig.Translations.NotEnoughYesVotes
-                .FormatExt(_votes[server].VoteType, yesVotes, noVotes,
-                    _votes[server].Target is not null
-                        ? _votes[server].Target?.CleanedName
-                        : _votes[server].VoteType is VoteEnums.VoteType.Map
-                            ? _votes[server].Map?.Alias
-                            : VoteEnums.VoteType.Skip));
-            _votes.Remove(server, out _);
+            var target = vote.Target?.CleanedName ?? GetVoteTarget(vote);
+            server.Broadcast(_voteConfig.Translations.NotEnoughYesVotes.FormatExt(vote.VoteType, yesVotes, noVotes, target));
+            _votes.TryRemove(server, out _);
             return;
         }
 
-        // Vote passed, perform the action.
-        switch (_votes[server].VoteType)
+        await PerformVoteAction(server, vote, yesVotes, noVotes);
+        _votes.TryRemove(server, out _);
+    }
+
+    private string GetVoteTarget(VoteModel vote)
+    {
+        return vote.VoteType == VoteEnums.VoteType.Map ? vote.Map.Alias : VoteEnums.VoteType.Skip.ToString();
+    }
+
+    private async Task PerformVoteAction(Server server, VoteModel vote, int yesVotes, int noVotes)
+    {
+        var voteActionMessage =
+            _voteConfig.Translations.VoteAction.FormatExt(vote.Origin?.CurrentAlias.Name, vote.Origin?.ClientId, vote.Reason);
+        var votePassedMessage =
+            _voteConfig.Translations.VotePassed.FormatExt(vote.VoteType, yesVotes, noVotes, vote.Target?.CurrentAlias.Name);
+
+        switch (vote.VoteType)
         {
             case VoteEnums.VoteType.Kick:
-                await server.Kick(_voteConfig.Translations.VoteAction
-                    .FormatExt(_votes[server].Origin?.CurrentAlias.Name, _votes[server].Origin?.ClientId,
-                        _votes[server].Reason), _votes[server].Target, Utilities.IW4MAdminClient());
-                server.Broadcast(_voteConfig.Translations.VotePassed
-                    .FormatExt(_votes[server].VoteType, yesVotes, noVotes, _votes[server].Target?.CurrentAlias.Name));
+                await server.Kick(voteActionMessage, vote.Target, Utilities.IW4MAdminClient());
+                server.Broadcast(votePassedMessage);
                 break;
             case VoteEnums.VoteType.Ban:
-                await server.TempBan(_voteConfig.Translations.VoteAction
-                        .FormatExt(_votes[server].Origin?.CurrentAlias.Name, _votes[server].Origin?.ClientId,
-                            _votes[server].Reason), _voteConfig.VoteBanDuration, _votes[server].Target,
-                    Utilities.IW4MAdminClient());
-                server.Broadcast(_voteConfig.Translations.VotePassed
-                    .FormatExt(_votes[server].VoteType, yesVotes, noVotes, _votes[server].Target?.CurrentAlias.Name));
+                await server.TempBan(voteActionMessage, _voteConfig.VoteBanDuration, vote.Target, Utilities.IW4MAdminClient());
+                server.Broadcast(votePassedMessage);
                 break;
             case VoteEnums.VoteType.Skip:
                 await server.ExecuteCommandAsync("map_rotate");
                 break;
             case VoteEnums.VoteType.Map:
-                await server.LoadMap(_votes[server].Map?.Name);
+                await server.LoadMap(vote.Map?.Name);
                 break;
         }
-
-        _votes.Remove(server, out _);
     }
 
     public void HandleDisconnect(Server server, EFClient client)
@@ -201,7 +215,7 @@ public class VoteManager
         foreach (var vote in _votes.Values.Where(vote =>
                      vote.Origin?.ClientId == client.ClientId || vote.Target?.ClientId == client.ClientId))
         {
-            vote.Votes?.TryRemove(client, out _);
+            vote.Votes.TryRemove(client, out _);
         }
     }
 }
