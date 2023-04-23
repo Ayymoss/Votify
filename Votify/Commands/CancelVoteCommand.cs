@@ -7,9 +7,15 @@ namespace Votify.Commands;
 
 public class CancelVoteCommand : Command
 {
-    public CancelVoteCommand(CommandConfiguration config, ITranslationLookup translationLookup) : base(config,
+    private readonly VoteManager _voteManager;
+    private readonly VoteConfiguration _voteConfig;
+
+    public CancelVoteCommand(CommandConfiguration config, ITranslationLookup translationLookup, VoteManager voteManager,
+        VoteConfiguration voteConfiguration) : base(config,
         translationLookup)
     {
+        _voteManager = voteManager;
+        _voteConfig = voteConfiguration;
         Name = "cancelvote";
         Description = "cancels the current vote";
         Alias = "cv";
@@ -19,14 +25,14 @@ public class CancelVoteCommand : Command
 
     public override async Task ExecuteAsync(GameEvent gameEvent)
     {
-        if (Plugin.Votify.InProgressVote(gameEvent.Owner))
+        if (_voteManager.InProgressVote(gameEvent.Owner))
         {
-            Plugin.Votify.CancelVote(gameEvent.Owner);
-            gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteCancelled);
+            _voteManager.CancelVote(gameEvent.Owner);
+            gameEvent.Origin.Tell(_voteConfig.Translations.VoteCancelled);
         }
         else
         {
-            gameEvent.Origin.Tell(Plugin.Configuration.Translations.NoVoteInProgress);
+            gameEvent.Origin.Tell(_voteConfig.Translations.NoVoteInProgress);
         }
     }
 }

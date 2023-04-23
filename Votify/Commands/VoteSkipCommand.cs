@@ -8,9 +8,15 @@ namespace Votify.Commands;
 
 public class VoteSkipCommand : Command
 {
-    public VoteSkipCommand(CommandConfiguration config, ITranslationLookup translationLookup) : base(config,
+    private readonly VoteManager _voteManager;
+    private readonly VoteConfiguration _voteConfig;
+
+    public VoteSkipCommand(CommandConfiguration config, ITranslationLookup translationLookup, VoteManager voteManager,
+        VoteConfiguration voteConfiguration) : base(config,
         translationLookup)
     {
+        _voteManager = voteManager;
+        _voteConfig = voteConfiguration;
         Name = "voteskip";
         Description = "starts a vote to skip the map";
         Alias = "vs";
@@ -20,33 +26,33 @@ public class VoteSkipCommand : Command
 
     public override async Task ExecuteAsync(GameEvent gameEvent)
     {
-        if (!Plugin.Configuration.IsVoteTypeEnabled.VoteSkip)
+        if (!_voteConfig.IsVoteTypeEnabled.VoteSkip)
         {
-            gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteDisabled.FormatExt(VoteType.Skip));
+            gameEvent.Origin.Tell(_voteConfig.Translations.VoteDisabled.FormatExt(VoteEnums.VoteType.Skip));
             return;
         }
 
-        if (Plugin.Configuration.MinimumPlayersRequired > gameEvent.Owner.ClientNum)
+        if (_voteConfig.MinimumPlayersRequired > gameEvent.Owner.ClientNum)
         {
-            gameEvent.Origin.Tell(Plugin.Configuration.Translations.NotEnoughPlayers);
+            gameEvent.Origin.Tell(_voteConfig.Translations.NotEnoughPlayers);
             return;
         }
 
-        var result = Plugin.Votify.CreateVote(gameEvent.Owner, VoteType.Skip, gameEvent.Origin);
+        var result = _voteManager.CreateVote(gameEvent.Owner, VoteEnums.VoteType.Skip, gameEvent.Origin);
 
         switch (result)
         {
-            case VoteResult.Success:
-                gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteSuccess
-                    .FormatExt(Plugin.Configuration.Translations.VoteYes));
-                gameEvent.Owner.Broadcast(Plugin.Configuration.Translations.SkipVoteStarted
+            case VoteEnums.VoteResult.Success:
+                gameEvent.Origin.Tell(_voteConfig.Translations.VoteSuccess
+                    .FormatExt(_voteConfig.Translations.VoteYes));
+                gameEvent.Owner.Broadcast(_voteConfig.Translations.SkipVoteStarted
                     .FormatExt(gameEvent.Origin.CleanedName));
                 break;
-            case VoteResult.VoteInProgress:
-                gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteInProgress);
+            case VoteEnums.VoteResult.VoteInProgress:
+                gameEvent.Origin.Tell(_voteConfig.Translations.VoteInProgress);
                 break;
-            case VoteResult.VoteCooldown:
-                gameEvent.Origin.Tell(Plugin.Configuration.Translations.TooRecentVote);
+            case VoteEnums.VoteResult.VoteCooldown:
+                gameEvent.Origin.Tell(_voteConfig.Translations.TooRecentVote);
                 break;
         }
     }

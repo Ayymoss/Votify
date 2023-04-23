@@ -8,9 +8,15 @@ namespace Votify.Commands;
 
 public class VoteBanCommand : Command
 {
-    public VoteBanCommand(CommandConfiguration config, ITranslationLookup translationLookup) : base(config,
+    private readonly VoteManager _voteManager;
+    private readonly VoteConfiguration _voteConfig;
+
+    public VoteBanCommand(CommandConfiguration config, ITranslationLookup translationLookup, VoteManager voteManager,
+        VoteConfiguration voteConfiguration) : base(config,
         translationLookup)
     {
+        _voteManager = voteManager;
+        _voteConfig = voteConfiguration;
         Name = "voteban";
         Description = "starts a vote to ban a player";
         Alias = "vb";
@@ -33,55 +39,55 @@ public class VoteBanCommand : Command
 
     public override async Task ExecuteAsync(GameEvent gameEvent)
     {
-        if (!Plugin.Configuration.IsVoteTypeEnabled.VoteBan)
+        if (!_voteConfig.IsVoteTypeEnabled.VoteBan)
         {
-            gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteDisabled.FormatExt(VoteType.Ban));
+            gameEvent.Origin.Tell(_voteConfig.Translations.VoteDisabled.FormatExt(VoteEnums.VoteType.Ban));
             return;
         }
-        
+
         if (gameEvent.Target.IsBot)
         {
-            gameEvent.Origin.Tell(Plugin.Configuration.Translations.CannotVoteBot);
+            gameEvent.Origin.Tell(_voteConfig.Translations.CannotVoteBot);
             return;
         }
-        
+
         if (gameEvent.Origin.ClientId == gameEvent.Target.ClientId)
         {
-            gameEvent.Origin.Tell(Plugin.Configuration.Translations.DenySelfTarget);
+            gameEvent.Origin.Tell(_voteConfig.Translations.DenySelfTarget);
             return;
         }
 
         if (gameEvent.Target.Level is not EFClient.Permission.User)
         {
-            gameEvent.Origin.Tell(Plugin.Configuration.Translations.CannotVoteRanked);
+            gameEvent.Origin.Tell(_voteConfig.Translations.CannotVoteRanked);
             return;
         }
 
-        if (Plugin.Configuration.MinimumPlayersRequired > gameEvent.Owner.ClientNum)
+        if (_voteConfig.MinimumPlayersRequired > gameEvent.Owner.ClientNum)
         {
-            gameEvent.Origin.Tell(Plugin.Configuration.Translations.NotEnoughPlayers);
+            gameEvent.Origin.Tell(_voteConfig.Translations.NotEnoughPlayers);
             return;
         }
 
-        var result = Plugin.Votify.CreateVote(gameEvent.Owner, VoteType.Ban, gameEvent.Origin,
+        var result = _voteManager.CreateVote(gameEvent.Owner, VoteEnums.VoteType.Ban, gameEvent.Origin,
             target: gameEvent.Target, reason: gameEvent.Data);
 
         switch (result)
         {
-            case VoteResult.Success:
-                gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteSuccess
-                    .FormatExt(Plugin.Configuration.Translations.VoteYes));
-                gameEvent.Target.Tell(Plugin.Configuration.Translations.VoteSuccess
-                    .FormatExt(Plugin.Configuration.Translations.VoteNo));
-                gameEvent.Owner.Broadcast(Plugin.Configuration.Translations.KickBanVoteStarted
-                    .FormatExt(gameEvent.Origin.CleanedName, VoteType.Ban, gameEvent.Target.CleanedName,
+            case VoteEnums.VoteResult.Success:
+                gameEvent.Origin.Tell(_voteConfig.Translations.VoteSuccess
+                    .FormatExt(_voteConfig.Translations.VoteYes));
+                gameEvent.Target.Tell(_voteConfig.Translations.VoteSuccess
+                    .FormatExt(_voteConfig.Translations.VoteNo));
+                gameEvent.Owner.Broadcast(_voteConfig.Translations.KickBanVoteStarted
+                    .FormatExt(gameEvent.Origin.CleanedName, VoteEnums.VoteType.Ban, gameEvent.Target.CleanedName,
                         gameEvent.Data));
                 break;
-            case VoteResult.VoteInProgress:
-                gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteInProgress);
+            case VoteEnums.VoteResult.VoteInProgress:
+                gameEvent.Origin.Tell(_voteConfig.Translations.VoteInProgress);
                 break;
-            case VoteResult.VoteCooldown:
-                gameEvent.Origin.Tell(Plugin.Configuration.Translations.TooRecentVote);
+            case VoteEnums.VoteResult.VoteCooldown:
+                gameEvent.Origin.Tell(_voteConfig.Translations.TooRecentVote);
                 break;
         }
     }

@@ -1,61 +1,52 @@
-﻿using SharedLibraryCore;
+﻿using Microsoft.Extensions.DependencyInjection;
+using SharedLibraryCore;
+using SharedLibraryCore.Events.Management;
 using SharedLibraryCore.Interfaces;
+using SharedLibraryCore.Interfaces.Events;
 
 namespace Votify;
 
-public class Plugin : IPlugin
+public class Plugin : IPluginV2
 {
-    private readonly IConfigurationHandler<ConfigurationModel> _configurationHandler;
-    public static ConfigurationModel Configuration = null!;
-    public static readonly Votify Votify = new();
-
-    private const string PluginName = "Votify";
-    public string Name => PluginName;
-    public float Version => 20221124f;
+    private readonly VoteConfiguration _voteConfig;
+    private readonly VoteManager _voteManager;
+    public string Name => "Votify";
+    public string Version => "2023-04-23";
     public string Author => "Amos";
 
-    public Plugin(IConfigurationHandlerFactory configurationHandlerFactory)
+    public Plugin(VoteConfiguration voteConfig, VoteManager voteManager)
     {
-        _configurationHandler = configurationHandlerFactory.GetConfigurationHandler<ConfigurationModel>("VotifySettings");
+        _voteConfig = voteConfig;
+        if (!_voteConfig.IsEnabled) return;
+
+        _voteManager = voteManager;
+
+        IManagementEventSubscriptions.Load += OnLoad;
+        IManagementEventSubscriptions.ClientStateDisposed += OnClientStateDisposed;
     }
 
-    public async Task OnEventAsync(GameEvent gameEvent, Server server)
+    public static void RegisterDependencies(IServiceCollection serviceCollection)
     {
-        if (!Configuration.IsEnabled) return;
-
-        switch (gameEvent.Type)
-        {
-            case GameEvent.EventType.Disconnect:
-                Votify.HandleDisconnect(server, gameEvent.Origin);
-                break;
-            case GameEvent.EventType.Update:
-                await Votify.OnUpdate();
-                break;
-        }
+        serviceCollection.AddConfiguration<VoteConfiguration>("VotifySettings");
+        serviceCollection.AddSingleton<VoteManager>();
     }
 
-    public async Task OnLoadAsync(IManager manager)
+    private Task OnClientStateDisposed(ClientStateDisposeEvent clientEvent, CancellationToken token)
     {
-        await _configurationHandler.BuildAsync();
-        if (_configurationHandler.Configuration() == null)
-        {
-            Console.WriteLine($"[{PluginName}] Configuration not found, creating.");
-            _configurationHandler.Set(new ConfigurationModel());
-        }
-
-        await _configurationHandler.Save();
-
-        Configuration = _configurationHandler.Configuration();
-        Console.WriteLine($"[{PluginName}] loaded. Version: {Version}");
-    }
-
-    public Task OnUnloadAsync()
-    {
+        _voteManager.HandleDisconnect(clientEvent.Client.CurrentServer, clientEvent.Client);
         return Task.CompletedTask;
     }
 
-    public Task OnTickAsync(Server server)
+    private Task OnLoad(IManager manager, CancellationToken token)
     {
+        Console.WriteLine($"[{Name}] loaded. Version: {Version}");
+        Utilities.ExecuteAfterDelay(_voteConfig.TimeBetweenVoteReminders, ExecuteAfterDelayCompleted, token);
         return Task.CompletedTask;
+    }
+
+    private async Task ExecuteAfterDelayCompleted(CancellationToken token)
+    {
+        await _voteManager.OnNotify();
+        Utilities.ExecuteAfterDelay(_voteConfig.TimeBetweenVoteReminders, ExecuteAfterDelayCompleted, token);
     }
 }

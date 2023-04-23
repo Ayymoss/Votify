@@ -8,9 +8,15 @@ namespace Votify.Commands;
 
 public class VoteMapCommand : Command
 {
-    public VoteMapCommand(CommandConfiguration config, ITranslationLookup translationLookup) : base(config,
+    private readonly VoteManager _voteManager;
+    private readonly VoteConfiguration _voteConfig;
+
+    public VoteMapCommand(CommandConfiguration config, ITranslationLookup translationLookup, VoteManager voteManager,
+        VoteConfiguration voteConfiguration) : base(config,
         translationLookup)
     {
+        _voteManager = voteManager;
+        _voteConfig = voteConfiguration;
         Name = "votemap";
         Description = "starts a vote to change the map";
         Alias = "vm";
@@ -28,15 +34,15 @@ public class VoteMapCommand : Command
 
     public override async Task ExecuteAsync(GameEvent gameEvent)
     {
-        if (!Plugin.Configuration.IsVoteTypeEnabled.VoteMap)
+        if (!_voteConfig.IsVoteTypeEnabled.VoteMap)
         {
-            gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteDisabled.FormatExt(VoteType.Map));
+            gameEvent.Origin.Tell(_voteConfig.Translations.VoteDisabled.FormatExt(VoteEnums.VoteType.Map));
             return;
         }
 
-        if (Plugin.Configuration.MinimumPlayersRequired > gameEvent.Owner.ClientNum)
+        if (_voteConfig.MinimumPlayersRequired > gameEvent.Owner.ClientNum)
         {
-            gameEvent.Origin.Tell(Plugin.Configuration.Translations.NotEnoughPlayers);
+            gameEvent.Origin.Tell(_voteConfig.Translations.NotEnoughPlayers);
             return;
         }
 
@@ -47,25 +53,25 @@ public class VoteMapCommand : Command
 
         if (foundMap is null)
         {
-            gameEvent.Origin.Tell(Plugin.Configuration.Translations.MapNotFound);
+            gameEvent.Origin.Tell(_voteConfig.Translations.MapNotFound);
             return;
         }
 
-        var result = Plugin.Votify.CreateVote(gameEvent.Owner, VoteType.Map, gameEvent.Origin, map: foundMap);
+        var result = _voteManager.CreateVote(gameEvent.Owner, VoteEnums.VoteType.Map, gameEvent.Origin, map: foundMap);
 
         switch (result)
         {
-            case VoteResult.Success:
-                gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteSuccess
-                    .FormatExt(Plugin.Configuration.Translations.VoteYes));
-                gameEvent.Owner.Broadcast(Plugin.Configuration.Translations.MapVoteStarted
+            case VoteEnums.VoteResult.Success:
+                gameEvent.Origin.Tell(_voteConfig.Translations.VoteSuccess
+                    .FormatExt(_voteConfig.Translations.VoteYes));
+                gameEvent.Owner.Broadcast(_voteConfig.Translations.MapVoteStarted
                     .FormatExt(gameEvent.Origin.CleanedName, foundMap.Alias));
                 break;
-            case VoteResult.VoteInProgress:
-                gameEvent.Origin.Tell(Plugin.Configuration.Translations.VoteInProgress);
+            case VoteEnums.VoteResult.VoteInProgress:
+                gameEvent.Origin.Tell(_voteConfig.Translations.VoteInProgress);
                 break;
-            case VoteResult.VoteCooldown:
-                gameEvent.Origin.Tell(Plugin.Configuration.Translations.TooRecentVote);
+            case VoteEnums.VoteResult.VoteCooldown:
+                gameEvent.Origin.Tell(_voteConfig.Translations.TooRecentVote);
                 break;
         }
     }
