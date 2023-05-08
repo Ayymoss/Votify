@@ -11,15 +11,14 @@ public class Plugin : IPluginV2
     private readonly VoteConfiguration _voteConfig;
     private readonly VoteManager _voteManager;
     public string Name => "Votify";
-    public string Version => "2023-04-23";
+    public string Version => "2023-05-09";
     public string Author => "Amos";
 
     public Plugin(VoteConfiguration voteConfig, VoteManager voteManager)
     {
         _voteConfig = voteConfig;
-        if (!_voteConfig.IsEnabled) return;
-
         _voteManager = voteManager;
+        if (!_voteConfig.IsEnabled) return;
 
         IManagementEventSubscriptions.Load += OnLoad;
         IManagementEventSubscriptions.ClientStateDisposed += OnClientStateDisposed;

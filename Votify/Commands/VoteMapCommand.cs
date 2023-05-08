@@ -40,7 +40,7 @@ public class VoteMapCommand : Command
             return;
         }
 
-        if (_voteConfig.MinimumPlayersRequired > gameEvent.Owner.ClientNum)
+        if (_voteConfig.MinimumPlayersRequired > gameEvent.Owner.ConnectedClients.Count)
         {
             gameEvent.Origin.Tell(_voteConfig.Translations.NotEnoughPlayers);
             return;
