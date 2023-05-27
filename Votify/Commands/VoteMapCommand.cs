@@ -3,6 +3,7 @@ using SharedLibraryCore;
 using SharedLibraryCore.Commands;
 using SharedLibraryCore.Configuration;
 using SharedLibraryCore.Interfaces;
+using Votify.Enums;
 
 namespace Votify.Commands;
 
@@ -12,8 +13,7 @@ public class VoteMapCommand : Command
     private readonly VoteConfiguration _voteConfig;
 
     public VoteMapCommand(CommandConfiguration config, ITranslationLookup translationLookup, VoteManager voteManager,
-        VoteConfiguration voteConfiguration) : base(config,
-        translationLookup)
+        VoteConfiguration voteConfiguration) : base(config, translationLookup)
     {
         _voteManager = voteManager;
         _voteConfig = voteConfiguration;
@@ -34,13 +34,19 @@ public class VoteMapCommand : Command
 
     public override async Task ExecuteAsync(GameEvent gameEvent)
     {
-        if (!_voteConfig.IsVoteTypeEnabled.VoteMap)
+        if (!_voteConfig.VoteConfigurations.VoteMap.IsEnabled)
         {
-            gameEvent.Origin.Tell(_voteConfig.Translations.VoteDisabled.FormatExt(VoteEnums.VoteType.Map));
+            gameEvent.Origin.Tell(_voteConfig.Translations.VoteDisabled.FormatExt(VoteType.Map));
             return;
         }
 
-        if (_voteConfig.MinimumPlayersRequired > gameEvent.Owner.ConnectedClients.Count)
+        if (_voteConfig.Core.DisabledServers.ContainsKey(gameEvent.Owner.Id) && _voteConfig.Core.DisabledServers[gameEvent.Owner.Id].Contains(VoteType.Map))
+        {
+            gameEvent.Origin.Tell(_voteConfig.Translations.VoteDisabledServer);
+            return;
+        }
+
+        if (_voteConfig.VoteConfigurations.VoteMap.MinimumPlayersRequired > gameEvent.Owner.ConnectedClients.Count)
         {
             gameEvent.Origin.Tell(_voteConfig.Translations.NotEnoughPlayers);
             return;
@@ -57,20 +63,20 @@ public class VoteMapCommand : Command
             return;
         }
 
-        var result = _voteManager.CreateVote(gameEvent.Owner, VoteEnums.VoteType.Map, gameEvent.Origin, map: foundMap);
+        var result = _voteManager.CreateVote(gameEvent.Owner, VoteType.Map, gameEvent.Origin, map: foundMap);
 
         switch (result)
         {
-            case VoteEnums.VoteResult.Success:
+            case VoteResult.Success:
                 gameEvent.Origin.Tell(_voteConfig.Translations.VoteSuccess
                     .FormatExt(_voteConfig.Translations.VoteYes));
                 gameEvent.Owner.Broadcast(_voteConfig.Translations.MapVoteStarted
                     .FormatExt(gameEvent.Origin.CleanedName, foundMap.Alias));
                 break;
-            case VoteEnums.VoteResult.VoteInProgress:
+            case VoteResult.VoteInProgress:
                 gameEvent.Origin.Tell(_voteConfig.Translations.VoteInProgress);
                 break;
-            case VoteEnums.VoteResult.VoteCooldown:
+            case VoteResult.VoteCooldown:
                 gameEvent.Origin.Tell(_voteConfig.Translations.TooRecentVote);
                 break;
         }

@@ -11,8 +11,7 @@ public class CancelVoteCommand : Command
     private readonly VoteConfiguration _voteConfig;
 
     public CancelVoteCommand(CommandConfiguration config, ITranslationLookup translationLookup, VoteManager voteManager,
-        VoteConfiguration voteConfiguration) : base(config,
-        translationLookup)
+        VoteConfiguration voteConfiguration) : base(config, translationLookup)
     {
         _voteManager = voteManager;
         _voteConfig = voteConfiguration;

@@ -3,6 +3,7 @@ using SharedLibraryCore;
 using SharedLibraryCore.Commands;
 using SharedLibraryCore.Configuration;
 using SharedLibraryCore.Interfaces;
+using Votify.Enums;
 
 namespace Votify.Commands;
 
@@ -12,8 +13,7 @@ public class VoteKickCommand : Command
     private readonly VoteConfiguration _voteConfig;
 
     public VoteKickCommand(CommandConfiguration config, ITranslationLookup translationLookup, VoteManager voteManager,
-        VoteConfiguration voteConfiguration) : base(config,
-        translationLookup)
+        VoteConfiguration voteConfiguration) : base(config, translationLookup)
     {
         _voteManager = voteManager;
         _voteConfig = voteConfiguration;
@@ -39,9 +39,15 @@ public class VoteKickCommand : Command
 
     public override async Task ExecuteAsync(GameEvent gameEvent)
     {
-        if (!_voteConfig.IsVoteTypeEnabled.VoteKick)
+        if (!_voteConfig.VoteConfigurations.VoteKick.IsEnabled)
         {
-            gameEvent.Origin.Tell(_voteConfig.Translations.VoteDisabled.FormatExt(VoteEnums.VoteType.Kick));
+            gameEvent.Origin.Tell(_voteConfig.Translations.VoteDisabled.FormatExt(VoteType.Kick));
+            return;
+        }
+
+        if (_voteConfig.Core.DisabledServers.ContainsKey(gameEvent.Owner.Id) && _voteConfig.Core.DisabledServers[gameEvent.Owner.Id].Contains(VoteType.Kick))
+        {
+            gameEvent.Origin.Tell(_voteConfig.Translations.VoteDisabledServer);
             return;
         }
 
@@ -63,30 +69,30 @@ public class VoteKickCommand : Command
             return;
         }
 
-        if (_voteConfig.MinimumPlayersRequired > gameEvent.Owner.ConnectedClients.Count)
+        if (_voteConfig.VoteConfigurations.VoteKick.MinimumPlayersRequired > gameEvent.Owner.ConnectedClients.Count)
         {
             gameEvent.Origin.Tell(_voteConfig.Translations.NotEnoughPlayers);
             return;
         }
 
-        var result = _voteManager.CreateVote(gameEvent.Owner, VoteEnums.VoteType.Kick, gameEvent.Origin,
+        var result = _voteManager.CreateVote(gameEvent.Owner, VoteType.Kick, gameEvent.Origin,
             target: gameEvent.Target, reason: gameEvent.Data);
 
         switch (result)
         {
-            case VoteEnums.VoteResult.Success:
+            case VoteResult.Success:
                 gameEvent.Origin.Tell(_voteConfig.Translations.VoteSuccess
                     .FormatExt(_voteConfig.Translations.VoteYes));
                 gameEvent.Target.Tell(_voteConfig.Translations.VoteSuccess
                     .FormatExt(_voteConfig.Translations.VoteNo));
                 gameEvent.Owner.Broadcast(_voteConfig.Translations.KickBanVoteStarted
-                    .FormatExt(gameEvent.Origin.CleanedName, VoteEnums.VoteType.Kick, gameEvent.Target.CleanedName,
+                    .FormatExt(gameEvent.Origin.CleanedName, VoteType.Kick, gameEvent.Target.CleanedName,
                         gameEvent.Data));
                 break;
-            case VoteEnums.VoteResult.VoteInProgress:
+            case VoteResult.VoteInProgress:
                 gameEvent.Origin.Tell(_voteConfig.Translations.VoteInProgress);
                 break;
-            case VoteEnums.VoteResult.VoteCooldown:
+            case VoteResult.VoteCooldown:
                 gameEvent.Origin.Tell(_voteConfig.Translations.TooRecentVote);
                 break;
         }

@@ -1,53 +1,17 @@
-﻿using SharedLibraryCore.Interfaces;
+﻿using Votify.Enums;
+using Votify.Interfaces;
 
 namespace Votify;
 
 public class VoteConfiguration
 {
-    /// <summary>
-    /// Enable or disable the plugin
-    /// </summary>
-    public bool IsEnabled { get; set; } = true;
-
-    /// <summary>
-    /// Required percentage of yes votes to pass a vote
-    /// </summary>
-    public float VotePassPercentage { get; set; } = 0.51f;
-
-    /// <summary>
-    /// Required number of voters to pass a vote
-    /// </summary>
-    public float MinimumVotingPlayersPercentage { get; set; } = 0.20f;
-
-    /// <summary>
-    /// Required number of players to start a vote
-    /// </summary>
-    public int MinimumPlayersRequired { get; set; } = 4;
-
-    /// <summary>
-    /// Length of duration in seconds a vote will last
-    /// </summary>
-    public TimeSpan VoteDuration { get; set; } = TimeSpan.FromSeconds(30);
-
-    /// <summary>
-    /// Length of duration in seconds until the next vote can be started
-    /// </summary>
-    public TimeSpan VoteCooldown { get; set; } = TimeSpan.FromMinutes(5);
-
-    /// <summary>
-    /// The length of time the target player is banned for when a successful vote to be banned
-    /// </summary>
-    public TimeSpan VoteBanDuration { get; set; } = TimeSpan.FromMinutes(30);
-
-    /// <summary>
-    /// Interval in seconds between vote broadcast messages
-    /// </summary>
-    public TimeSpan TimeBetweenVoteReminders { get; set; } = TimeSpan.FromSeconds(5);
+    // Ignore - Core configuration object
+    public CoreConfiguration Core { get; set; } = new();
 
     /// <summary>
     /// Enabled or disabled vote types
     /// </summary>
-    public VoteTypeConfiguration IsVoteTypeEnabled { get; set; } = new();
+    public VoteTypeConfiguration VoteConfigurations { get; set; } = new();
 
     /// <summary>
     /// Translation strings for the plugin
@@ -60,31 +24,85 @@ public class VoteConfiguration
     public bool IsDebug { get; set; } = false;
 }
 
+public class CoreConfiguration
+{
+    /// <summary>
+    /// Enable or disable the plugin
+    /// </summary>
+    public bool IsEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Length of duration in seconds a vote will last
+    /// </summary>
+    public TimeSpan VoteDuration { get; set; } = TimeSpan.FromSeconds(30);
+
+    /// <summary>
+    /// Interval in seconds between vote broadcast messages
+    /// </summary>
+    public TimeSpan TimeBetweenVoteReminders { get; set; } = TimeSpan.FromSeconds(5);
+
+    /// <summary>
+    /// A list of Server IPs that the plugin will be disabled on
+    /// </summary>
+    public Dictionary<string, VoteType[]> DisabledServers { get; set; } = new()
+    {
+        {"example.server.com:8123", new[] {VoteType.Map}},
+        {"123.123.123.123:4321", new[] {VoteType.Kick, VoteType.Skip, VoteType.Ban}},
+    };
+}
+
 public class VoteTypeConfiguration
 {
     /// <summary>
     /// Enable or disable Vote Ban
     /// </summary>
-    public bool VoteBan { get; set; } = false;
+    public VoteBan VoteBan { get; set; } = new();
 
     /// <summary>
     /// Enable or disable Vote Kick
     /// </summary>
-    public bool VoteKick { get; set; } = true;
+    public VoteKick VoteKick { get; set; } = new();
 
     /// <summary>
     /// Enable or disable Vote Map
     /// </summary>
-    public bool VoteMap { get; set; } = true;
+    public VoteMap VoteMap { get; set; } = new();
 
     /// <summary>
     /// Enable or disable Vote Skip
     /// </summary>
-    public bool VoteSkip { get; set; } = true;
+    public VoteSkip VoteSkip { get; set; } = new();
+}
+
+public abstract class VoteConfigurationBase : IVoteTypeConfiguration
+{
+    public bool IsEnabled { get; set; } = true;
+    public float VotePassPercentage { get; set; } = 0.51f;
+    public float MinimumVotingPlayersPercentage { get; set; } = 0.20f;
+    public int MinimumPlayersRequired { get; set; } = 4;
+    public TimeSpan VoteCooldown { get; set; } = TimeSpan.FromMinutes(5);
+    public TimeSpan VoteBanDuration { get; set; } = TimeSpan.FromMinutes(30);
+}
+
+public class VoteSkip : VoteConfigurationBase
+{
+}
+
+public class VoteBan : VoteConfigurationBase
+{
+}
+
+public class VoteKick : VoteConfigurationBase
+{
+}
+
+public class VoteMap : VoteConfigurationBase
+{
 }
 
 public class Translation
 {
+    // @formatter:off
     public string NotEnoughVotes { get; set; } = "(Color::Yellow)VOTE {{type}}(Color::White): (Color::Red)Failed, not enough votes!";
     public string NotEnoughYesVotes { get; set; } = "(Color::Yellow)VOTE {{type}}(Color::White): (Color::Red)Failed, not enough yes votes!";
     public string OpenVoteAutoMessage { get; set; } = "(Color::Yellow)VOTE {{type}}(Color::White): [(Color::Green){{yes}}(Color::White):{{abstains}}:(Color::Red){{no}}(Color::White) @ (Color::Yellow){{target}}(Color::White)] Type (Color::Green)!y (Color::White)or (Color::Red)!n (Color::White)to vote";
@@ -109,4 +127,6 @@ public class Translation
     public string CannotVoteRanked { get; set; } = "(Color::Yellow)VOTE(Color::White): You cannot vote on ranked players";
     public string VoteYes { get; set; } = "(Color::Green)Yes(Color::White)";
     public string VoteNo { get; set; } = "(Color::Red)No(Color::White)";
+    public string VoteDisabledServer { get; set; } = "(Color::Yellow)VOTE(Color::White): Votify disabled on this server";
+    // @formatter:on
 }

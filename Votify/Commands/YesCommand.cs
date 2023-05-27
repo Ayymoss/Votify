@@ -2,6 +2,7 @@
 using SharedLibraryCore;
 using SharedLibraryCore.Configuration;
 using SharedLibraryCore.Interfaces;
+using Votify.Enums;
 
 namespace Votify.Commands;
 
@@ -11,8 +12,7 @@ public class YesCommand : Command
     private readonly VoteConfiguration _voteConfig;
 
     public YesCommand(CommandConfiguration config, ITranslationLookup translationLookup, VoteManager voteManager,
-        VoteConfiguration voteConfiguration) : base(config,
-        translationLookup)
+        VoteConfiguration voteConfiguration) : base(config, translationLookup)
     {
         _voteManager = voteManager;
         _voteConfig = voteConfiguration;
@@ -31,17 +31,17 @@ public class YesCommand : Command
             return;
         }
 
-        var result = _voteManager.CastVote(gameEvent.Owner, gameEvent.Origin, VoteEnums.Vote.Yes);
+        var result = _voteManager.CastVote(gameEvent.Owner, gameEvent.Origin, Vote.Yes);
         switch (result)
         {
-            case VoteEnums.VoteResult.Success:
+            case VoteResult.Success:
                 gameEvent.Origin.Tell(_voteConfig.Translations.VoteSuccess
                     .FormatExt(_voteConfig.Translations.VoteYes));
                 break;
-            case VoteEnums.VoteResult.NoVoteInProgress:
+            case VoteResult.NoVoteInProgress:
                 gameEvent.Origin.Tell(_voteConfig.Translations.NoVoteInProgress);
                 break;
-            case VoteEnums.VoteResult.AlreadyVoted:
+            case VoteResult.AlreadyVoted:
                 gameEvent.Origin.Tell(_voteConfig.Translations.AlreadyVoted);
                 break;
         }
