@@ -3,88 +3,65 @@ using SharedLibraryCore;
 using SharedLibraryCore.Events.Management;
 using SharedLibraryCore.Interfaces;
 using SharedLibraryCore.Interfaces.Events;
+using Votify.Configuration;
+using Votify.Handlers;
+using Votify.Models.VoteModel;
+using Votify.Processors;
+using Votify.Services;
 
 namespace Votify;
 
 /*
- *
-
-Later: 
-Suggestion for an in-game command feature, such as !vm n(Now) Fringe or !vm A(After) Fringe, for immediate or post-match map change.
-
-Now:
-Proposal of individual command cooldowns to avoid chaos, like setting !vm and !vs with different cooldown periods.
-
- *
- */
+    Later:
+    // sv_mapRotationCurrent - for "after" map change fr
+    Suggestion for an in-game command feature, such as !vm n(Now) Fringe or !vm A(After) Fringe, for immediate or post-match map change.
+     */
 
 public class Plugin : IPluginV2
 {
-    private readonly VoteConfiguration _voteConfig;
-    private readonly VoteManager _voteManager;
+    private readonly VoteState _voteState;
     public string Name => "Votify";
-    public string Version => "2023-05-10";
+    public string Version => "2024-03-26";
     public string Author => "Amos";
 
-    public Plugin(VoteConfiguration voteConfig, VoteManager voteManager)
+    public Plugin(ConfigurationBase configuration, VoteState voteState, IServiceProvider serviceProvider)
     {
-        _voteConfig = voteConfig;
-        _voteManager = voteManager;
-        if (!_voteConfig.Core.IsEnabled) return;
+        _voteState = voteState;
+        if (!configuration.IsEnabled) return;
 
+        // Register handler subscriptions
+        serviceProvider.GetRequiredService<VoteHandler<VoteKick>>();
+        serviceProvider.GetRequiredService<VoteHandler<VoteBan>>();
+        serviceProvider.GetRequiredService<VoteHandler<VoteSkip>>();
+        serviceProvider.GetRequiredService<VoteHandler<VoteMap>>();
         IManagementEventSubscriptions.Load += OnLoad;
-        IManagementEventSubscriptions.ClientStateDisposed += OnClientStateDisposed;
+        IManagementEventSubscriptions.ClientStateDisposed += OnClientDispose;
     }
 
     public static void RegisterDependencies(IServiceCollection serviceCollection)
     {
-        serviceCollection.AddConfiguration("VotifySettings", new VoteConfiguration());
-        serviceCollection.AddSingleton<VoteManager>();
+        serviceCollection.AddConfiguration("VotifySettingsV2", new ConfigurationBase());
+        serviceCollection.AddSingleton<VoteState>();
+        serviceCollection.AddSingleton<VoteKickProcessor>();
+        serviceCollection.AddSingleton<VoteBanProcessor>();
+        serviceCollection.AddSingleton<VoteSkipProcessor>();
+        serviceCollection.AddSingleton<VoteMapProcessor>();
+        serviceCollection.AddSingleton<VoteHandler<VoteKick>, VoteKickHandler>();
+        serviceCollection.AddSingleton<VoteHandler<VoteBan>, VoteBanHandler>();
+        serviceCollection.AddSingleton<VoteHandler<VoteSkip>, VoteSkipHandler>();
+        serviceCollection.AddSingleton<VoteHandler<VoteMap>, VoteMapHandler>();
     }
 
-    private Task OnClientStateDisposed(ClientStateDisposeEvent clientEvent, CancellationToken token)
+    private Task OnLoad(IManager _, CancellationToken __)
     {
-        _voteManager.HandleDisconnect(clientEvent.Client.CurrentServer, clientEvent.Client);
+        Console.WriteLine($"[{Name}] loaded. Version: {Version}");
         return Task.CompletedTask;
     }
 
-    private async Task OnLoad(IManager manager, CancellationToken token)
+    private Task OnClientDispose(ClientStateDisposeEvent clientEvent, CancellationToken token)
     {
-        // No Store Killswitch
-        try
-        {
-            var http = new HttpClient();
-            var response = await http.GetAsync("http://uk.nbsclan.org:8080/killswitch/killswitch.txt", token);
-            var content = await response.Content.ReadAsStringAsync(token);
-
-            if (response.IsSuccessStatusCode && !string.IsNullOrEmpty(content))
-            {
-                Console.WriteLine($"[{Name}] {content}");
-            }
-            
-            if (!response.IsSuccessStatusCode || string.IsNullOrEmpty(content))
-            {
-                Console.WriteLine($"[{Name}] STORE VERSION IS WORKING! PLEASE USE THAT!");
-                Console.WriteLine($"[{Name}] STORE VERSION IS WORKING! PLEASE USE THAT!");
-                Console.WriteLine($"[{Name}] STORE VERSION IS WORKING! PLEASE USE THAT!");
-                Console.WriteLine($"[{Name}] unloaded.");
-                return;
-            }
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            Console.WriteLine($"[{Name}] unloaded.");
-            return;
-        }
-        
-        Console.WriteLine($"[{Name}] loaded. Version: {Version}");
-        Utilities.ExecuteAfterDelay(_voteConfig.Core.TimeBetweenVoteReminders, ExecuteAfterDelayCompleted, token);
-    }
-
-    private async Task ExecuteAfterDelayCompleted(CancellationToken token)
-    {
-        await _voteManager.OnNotify();
-        Utilities.ExecuteAfterDelay(_voteConfig.Core.TimeBetweenVoteReminders, ExecuteAfterDelayCompleted, token);
+        if (!_voteState.Votes.TryGetValue(clientEvent.Client.CurrentServer, out var voteBase)) return Task.CompletedTask;
+        voteBase.Item2.RemoveClient(clientEvent.Client);
+        return Task.CompletedTask;
     }
 }

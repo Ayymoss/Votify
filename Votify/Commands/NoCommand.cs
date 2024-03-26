@@ -2,20 +2,23 @@
 using SharedLibraryCore;
 using SharedLibraryCore.Configuration;
 using SharedLibraryCore.Interfaces;
+using Votify.Configuration;
 using Votify.Enums;
+using Votify.Models;
+using Votify.Services;
 
 namespace Votify.Commands;
 
 public class NoCommand : Command
 {
-    private readonly VoteManager _voteManager;
-    private readonly VoteConfiguration _voteConfig;
+    private readonly ConfigurationBase _voteConfig;
+    private readonly VoteState _voteState;
 
-    public NoCommand(CommandConfiguration config, ITranslationLookup translationLookup, VoteManager voteManager,
-        VoteConfiguration voteConfiguration) : base(config, translationLookup)
+    public NoCommand(CommandConfiguration config, ITranslationLookup translationLookup,
+        ConfigurationBase voteConfig, VoteState voteState) : base(config, translationLookup)
     {
-        _voteManager = voteManager;
-        _voteConfig = voteConfiguration;
+        _voteConfig = voteConfig;
+        _voteState = voteState;
         Name = "no";
         Description = "vote no on the current vote";
         Alias = "n";
@@ -23,27 +26,34 @@ public class NoCommand : Command
         RequiresTarget = false;
     }
 
-    public override async Task ExecuteAsync(GameEvent gameEvent)
+    public override Task ExecuteAsync(GameEvent gameEvent)
     {
-        if (!_voteManager.InProgressVote(gameEvent.Owner))
+        var userVote = new UserVote
+        {
+            Server = gameEvent.Owner,
+            Client = gameEvent.Origin,
+            Vote = Vote.No
+        };
+
+        if (!_voteState.Votes.TryGetValue(gameEvent.Owner, out var voteBase))
         {
             gameEvent.Origin.Tell(_voteConfig.Translations.NoVoteInProgress);
-            return;
+            return Task.CompletedTask;
         }
 
-        var result = _voteManager.CastVote(gameEvent.Owner, gameEvent.Origin, Vote.No);
+        var result = voteBase.Item2.RegisterUserVote(userVote);
+
         switch (result)
         {
             case VoteResult.Success:
                 gameEvent.Origin.Tell(_voteConfig.Translations.VoteSuccess
                     .FormatExt(_voteConfig.Translations.VoteNo));
                 break;
-            case VoteResult.NoVoteInProgress:
-                gameEvent.Origin.Tell(_voteConfig.Translations.NoVoteInProgress);
-                break;
             case VoteResult.AlreadyVoted:
                 gameEvent.Origin.Tell(_voteConfig.Translations.AlreadyVoted);
                 break;
         }
+
+        return Task.CompletedTask;
     }
 }

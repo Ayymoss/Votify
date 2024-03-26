@@ -1,26 +1,31 @@
-﻿using Data.Models.Client;
+﻿using System.Collections.Concurrent;
 using SharedLibraryCore;
 using SharedLibraryCore.Commands;
 using SharedLibraryCore.Configuration;
+using SharedLibraryCore.Database.Models;
 using SharedLibraryCore.Interfaces;
+using Votify.Configuration;
 using Votify.Enums;
+using Votify.Models.VoteModel;
+using Votify.Processors;
 
 namespace Votify.Commands;
 
 public class VoteKickCommand : Command
 {
-    private readonly VoteManager _voteManager;
-    private readonly VoteConfiguration _voteConfig;
+    private readonly ConfigurationBase _voteConfig;
+    private readonly VoteKickProcessor _processor;
 
-    public VoteKickCommand(CommandConfiguration config, ITranslationLookup translationLookup, VoteManager voteManager,
-        VoteConfiguration voteConfiguration) : base(config, translationLookup)
+    public VoteKickCommand(CommandConfiguration config, ITranslationLookup translationLookup, ConfigurationBase voteConfig,
+        VoteKickProcessor processor)
+        : base(config, translationLookup)
     {
-        _voteManager = voteManager;
-        _voteConfig = voteConfiguration;
+        _voteConfig = voteConfig;
+        _processor = processor;
         Name = "votekick";
         Description = "starts a vote to kick a player";
         Alias = "vk";
-        Permission = EFClient.Permission.User;
+        Permission = Data.Models.Client.EFClient.Permission.User;
         RequiresTarget = true;
         Arguments = new[]
         {
@@ -37,54 +42,62 @@ public class VoteKickCommand : Command
         };
     }
 
-    public override async Task ExecuteAsync(GameEvent gameEvent)
+    public override Task ExecuteAsync(GameEvent gameEvent)
     {
-        if (!_voteConfig.VoteConfigurations.VoteKick.IsEnabled)
+        if (!_voteConfig.VoteKickConfiguration.IsEnabled)
         {
             gameEvent.Origin.Tell(_voteConfig.Translations.VoteDisabled.FormatExt(VoteType.Kick));
-            return;
+            return Task.CompletedTask;
         }
 
-        if (_voteConfig.Core.DisabledServers.ContainsKey(gameEvent.Owner.Id) && _voteConfig.Core.DisabledServers[gameEvent.Owner.Id].Contains(VoteType.Kick))
+        if (_voteConfig.DisabledServers.TryGetValue(gameEvent.Owner.Id, out var voteType) && voteType.Contains(VoteType.Kick))
         {
             gameEvent.Origin.Tell(_voteConfig.Translations.VoteDisabledServer);
-            return;
+            return Task.CompletedTask;
         }
 
-        if (gameEvent.Target.IsBot && !_voteConfig.IsDebug)
+        if (gameEvent.Target.IsBot)
         {
             gameEvent.Origin.Tell(_voteConfig.Translations.CannotVoteBot);
-            return;
+            return Task.CompletedTask;
         }
 
-        if (gameEvent.Origin.ClientId == gameEvent.Target.ClientId && !_voteConfig.IsDebug)
+        if (gameEvent.Origin.ClientId == gameEvent.Target.ClientId)
         {
             gameEvent.Origin.Tell(_voteConfig.Translations.DenySelfTarget);
-            return;
+            return Task.CompletedTask;
         }
 
-        if (gameEvent.Target.Level is not EFClient.Permission.User && !_voteConfig.IsDebug)
+        if (gameEvent.Target.Level is not Data.Models.Client.EFClient.Permission.User)
         {
             gameEvent.Origin.Tell(_voteConfig.Translations.CannotVoteRanked);
-            return;
+            return Task.CompletedTask;
         }
 
-        if (_voteConfig.VoteConfigurations.VoteKick.MinimumPlayersRequired > gameEvent.Owner.ConnectedClients.Count)
+        if (_voteConfig.VoteKickConfiguration.MinimumPlayersRequired > gameEvent.Owner.ConnectedClients.Count)
         {
             gameEvent.Origin.Tell(_voteConfig.Translations.NotEnoughPlayers);
-            return;
+            return Task.CompletedTask;
         }
+        
+        var vote = new VoteKick
+        {
+            Initiator = gameEvent.Origin,
+            Created = DateTimeOffset.UtcNow,
+            Votes = new ConcurrentDictionary<EFClient, Vote>
+            {
+                [gameEvent.Origin] = Vote.Yes,
+                [gameEvent.Target] = Vote.No
+            },
+            Target = gameEvent.Target,
+            Reason = gameEvent.Data
+        };
 
-        var result = _voteManager.CreateVote(gameEvent.Owner, VoteType.Kick, gameEvent.Origin,
-            target: gameEvent.Target, reason: gameEvent.Data);
+        var result = _processor.CreateVote(gameEvent.Owner, vote);
 
         switch (result)
         {
             case VoteResult.Success:
-                gameEvent.Origin.Tell(_voteConfig.Translations.VoteSuccess
-                    .FormatExt(_voteConfig.Translations.VoteYes));
-                gameEvent.Target.Tell(_voteConfig.Translations.VoteSuccess
-                    .FormatExt(_voteConfig.Translations.VoteNo));
                 gameEvent.Owner.Broadcast(_voteConfig.Translations.KickBanVoteStarted
                     .FormatExt(gameEvent.Origin.CleanedName, VoteType.Kick, gameEvent.Target.CleanedName,
                         gameEvent.Data));
@@ -96,5 +109,7 @@ public class VoteKickCommand : Command
                 gameEvent.Origin.Tell(_voteConfig.Translations.TooRecentVote);
                 break;
         }
+
+        return Task.CompletedTask;
     }
 }

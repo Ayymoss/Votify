@@ -1,22 +1,26 @@
-﻿using Data.Models.Client;
+﻿using System.Collections.Concurrent;
 using SharedLibraryCore;
-using SharedLibraryCore.Commands;
 using SharedLibraryCore.Configuration;
+using SharedLibraryCore.Database.Models;
 using SharedLibraryCore.Interfaces;
+using Votify.Configuration;
 using Votify.Enums;
+using Votify.Models.VoteModel;
+using Votify.Processors;
 
 namespace Votify.Commands;
 
 public class VoteSkipCommand : Command
 {
-    private readonly VoteManager _voteManager;
-    private readonly VoteConfiguration _voteConfig;
+    private readonly ConfigurationBase _voteConfig;
+    private readonly VoteSkipProcessor _processor;
 
-    public VoteSkipCommand(CommandConfiguration config, ITranslationLookup translationLookup, VoteManager voteManager,
-        VoteConfiguration voteConfiguration) : base(config, translationLookup)
+    public VoteSkipCommand(CommandConfiguration config, ITranslationLookup translationLookup, ConfigurationBase voteConfig,
+        VoteSkipProcessor processor)
+        : base(config, translationLookup)
     {
-        _voteManager = voteManager;
-        _voteConfig = voteConfiguration;
+        _voteConfig = voteConfig;
+        _processor = processor;
         Name = "voteskip";
         Description = "starts a vote to skip the map";
         Alias = "vs";
@@ -24,33 +28,41 @@ public class VoteSkipCommand : Command
         RequiresTarget = false;
     }
 
-    public override async Task ExecuteAsync(GameEvent gameEvent)
+    public override Task ExecuteAsync(GameEvent gameEvent)
     {
-        if (!_voteConfig.VoteConfigurations.VoteSkip.IsEnabled)
+        if (!_voteConfig.VoteSkipConfiguration.IsEnabled)
         {
             gameEvent.Origin.Tell(_voteConfig.Translations.VoteDisabled.FormatExt(VoteType.Skip));
-            return;
+            return Task.CompletedTask;
         }
 
-        if (_voteConfig.Core.DisabledServers.ContainsKey(gameEvent.Owner.Id) && _voteConfig.Core.DisabledServers[gameEvent.Owner.Id].Contains(VoteType.Skip))
+        if (_voteConfig.DisabledServers.TryGetValue(gameEvent.Owner.Id, out var voteType) && voteType.Contains(VoteType.Skip))
         {
             gameEvent.Origin.Tell(_voteConfig.Translations.VoteDisabledServer);
-            return;
+            return Task.CompletedTask;
         }
 
-        if (_voteConfig.VoteConfigurations.VoteSkip.MinimumPlayersRequired > gameEvent.Owner.ConnectedClients.Count)
+        if (_voteConfig.VoteSkipConfiguration.MinimumPlayersRequired > gameEvent.Owner.ConnectedClients.Count)
         {
             gameEvent.Origin.Tell(_voteConfig.Translations.NotEnoughPlayers);
-            return;
+            return Task.CompletedTask;
         }
 
-        var result = _voteManager.CreateVote(gameEvent.Owner, VoteType.Skip, gameEvent.Origin);
+        var vote = new VoteSkip
+        {
+            Initiator = gameEvent.Origin,
+            Created = DateTimeOffset.UtcNow,
+            Votes = new ConcurrentDictionary<EFClient, Vote>
+            {
+                [gameEvent.Origin] = Vote.Yes
+            }
+        };
+
+        var result = _processor.CreateVote(gameEvent.Owner, vote);
 
         switch (result)
         {
             case VoteResult.Success:
-                gameEvent.Origin.Tell(_voteConfig.Translations.VoteSuccess
-                    .FormatExt(_voteConfig.Translations.VoteYes));
                 gameEvent.Owner.Broadcast(_voteConfig.Translations.SkipVoteStarted
                     .FormatExt(gameEvent.Origin.CleanedName));
                 break;
@@ -61,5 +73,7 @@ public class VoteSkipCommand : Command
                 gameEvent.Origin.Tell(_voteConfig.Translations.TooRecentVote);
                 break;
         }
+
+        return Task.CompletedTask;
     }
 }
