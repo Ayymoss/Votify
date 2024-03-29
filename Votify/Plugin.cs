@@ -11,17 +11,17 @@ using Votify.Services;
 
 namespace Votify;
 
-/*
+/* TODO:
     Later:
     // sv_mapRotationCurrent - for "after" map change fr
     Suggestion for an in-game command feature, such as !vm n(Now) Fringe or !vm A(After) Fringe, for immediate or post-match map change.
-     */
+         */
 
 public class Plugin : IPluginV2
 {
     private readonly VoteState _voteState;
     public string Name => "Votify";
-    public string Version => "2024-03-26";
+    public string Version => "2024-03-29";
     public string Author => "Amos";
 
     public Plugin(ConfigurationBase configuration, VoteState voteState, IServiceProvider serviceProvider)

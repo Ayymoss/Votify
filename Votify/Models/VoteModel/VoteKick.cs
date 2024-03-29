@@ -4,6 +4,6 @@ namespace Votify.Models.VoteModel;
 
 public class VoteKick : VoteBase
 {
-    public EFClient Target { get; set; } = null!; // TODO: .NET 8 use 'required' keyword
-    public string Reason { get; set; } = null!; // TODO: .NET 8 use 'required' keyword
+    public required EFClient Target { get; set; }
+    public required string Reason { get; set; }
 }

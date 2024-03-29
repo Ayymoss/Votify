@@ -4,10 +4,5 @@ using Votify.Services;
 
 namespace Votify.Processors;
 
-public class VoteKickProcessor : VoteProcessor<VoteKick>
-{
-    public VoteKickProcessor(ConfigurationBase configuration, VoteState voteState)
-        : base(configuration, configuration.VoteKickConfiguration, voteState)
-    {
-    }
-}
+public class VoteKickProcessor(ConfigurationBase configuration, VoteState voteState)
+    : VoteProcessor<VoteKick>(configuration, configuration.VoteKickConfiguration, voteState);

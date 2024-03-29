@@ -1,37 +1,40 @@
 ﻿using FluentValidation;
-using SharedLibraryCore;
 using SharedLibraryCore.Interfaces;
+using Votify.Enums;
 using Votify.Models;
-using Votify.Models.VoteModel;
 
 namespace Votify.Configuration;
 
 public class Validation : AbstractValidator<VoteConfigurationBase>
 {
-    public Validation(DateTimeOffset lastVote)
+    public Validation(DateTimeOffset lastVote, IGameServer server)
     {
         RuleFor(x => x.VoteCooldown)
             .LessThan(DateTimeOffset.UtcNow - lastVote)
-            .WithMessage("VoteKick cooldown not met");
-    }
-
-    public Validation(Server server, VoteBase voteBase)
-    {
-        RuleFor(x => x)
-            .Must(config => IsEnoughVotes(config, server, voteBase))
-            .WithMessage("Not enough votes cast to satisfy the configured minimum");
+            .WithMessage(VoteResult.VoteCooldown.ToString());
 
         RuleFor(x => x)
             .Must(config => IsEnoughPlayers(config, server))
-            .WithMessage("Not enough players to satisfy the configured minimum");
+            .WithMessage(VoteResult.NotEnoughPlayers.ToString());
+    }
+
+    public Validation(IGameServer server, VoteBase voteBase)
+    {
+        RuleFor(x => x)
+            .Must(config => IsEnoughVotes(config, server, voteBase))
+            .WithMessage(VoteResult.NotEnoughVotes.ToString());
+
+        RuleFor(x => x)
+            .Must(config => IsEnoughPlayers(config, server))
+            .WithMessage(VoteResult.NotEnoughPlayers.ToString());
 
         RuleFor(x => x)
             .Must(config => HasVotePercentage(config, voteBase))
-            .WithMessage("The vote did not reach the required pass percentage");
+            .WithMessage(VoteResult.VoteFailed.ToString());
     }
 
     // MinimumVotingPlayersPercentage
-    private bool IsEnoughVotes(VoteConfigurationBase config, IGameServer server, VoteBase voteBase)
+    private static bool IsEnoughVotes(VoteConfigurationBase config, IGameServer server, VoteBase voteBase)
     {
         var totalVotes = voteBase.YesVotes + voteBase.NoVotes;
         var votingPercentage = (float)totalVotes / server.ConnectedClients.Count(x => !x.IsBot);
@@ -39,13 +42,11 @@ public class Validation : AbstractValidator<VoteConfigurationBase>
     }
 
     // MinimumPlayersRequired
-    private bool IsEnoughPlayers(VoteConfigurationBase config, Server server)
-    {
-        return server.Clients.Count >= config.MinimumPlayersRequired;
-    }
+    private static bool IsEnoughPlayers(VoteConfigurationBase config, IGameServer server) =>
+        server.ConnectedClients.Count(x => !x.IsBot) >= config.MinimumPlayersRequired;
 
     // VotePassPercentage
-    private bool HasVotePercentage(VoteConfigurationBase config, VoteBase voteBase)
+    private static bool HasVotePercentage(VoteConfigurationBase config, VoteBase voteBase)
     {
         var totalVotes = voteBase.YesVotes + voteBase.NoVotes;
         var votePercentage = (float)voteBase.YesVotes / totalVotes;

@@ -1,5 +1,3 @@
 namespace Votify.Configuration;
 
-public class VoteSkipConfiguration : VoteConfigurationBase
-{
-}
+public class VoteSkipConfiguration : VoteConfigurationBase;

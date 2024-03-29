@@ -24,8 +24,8 @@ public class ConfigurationBase
     /// </summary>
     public Dictionary<string, VoteType[]> DisabledServers { get; set; } = new()
     {
-        { "example.server.com:8123", new[] { VoteType.Map } },
-        { "123.123.123.123:4321", new[] { VoteType.Kick, VoteType.Skip, VoteType.Ban } },
+        { "example.server.com:8123", [VoteType.Map] },
+        { "123.123.123.123:4321", [VoteType.Kick, VoteType.Skip, VoteType.Ban] },
     };
 
     public VoteBanConfiguration VoteBanConfiguration { get; set; } = new();

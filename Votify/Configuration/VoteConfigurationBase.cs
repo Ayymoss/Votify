@@ -1,7 +1,6 @@
 ﻿using FluentValidation.Results;
 using SharedLibraryCore;
 using Votify.Models;
-using Votify.Models.VoteModel;
 
 namespace Votify.Configuration;
 
@@ -13,9 +12,9 @@ public abstract class VoteConfigurationBase
     public int MinimumPlayersRequired { get; set; } = 4;
     public TimeSpan VoteCooldown { get; set; } = TimeSpan.FromMinutes(5);
 
-    public virtual ValidationResult Validate(DateTimeOffset lastVote)
+    public virtual ValidationResult Validate(DateTimeOffset lastVote, Server server)
     {
-        var validator = new Validation(lastVote);
+        var validator = new Validation(lastVote, server);
         return validator.Validate(this);
     }
 

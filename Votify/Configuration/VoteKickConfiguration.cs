@@ -1,7 +1,3 @@
 namespace Votify.Configuration;
 
-public class VoteKickConfiguration : VoteConfigurationBase
-{
-    
-
-}
+public class VoteKickConfiguration : VoteConfigurationBase;

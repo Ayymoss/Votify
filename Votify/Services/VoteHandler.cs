@@ -1,7 +1,6 @@
 ﻿using SharedLibraryCore;
 using Votify.Enums;
 using Votify.Models;
-using Votify.Models.VoteModel;
 
 namespace Votify.Services;
 

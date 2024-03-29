@@ -4,10 +4,5 @@ using Votify.Services;
 
 namespace Votify.Processors;
 
-public class VoteSkipProcessor : VoteProcessor<VoteSkip>
-{
-    public VoteSkipProcessor(ConfigurationBase configuration, VoteState voteState)
-        : base(configuration, configuration.VoteSkipConfiguration, voteState)
-    {
-    }
-}
+public class VoteSkipProcessor(ConfigurationBase configuration, VoteState voteState)
+    : VoteProcessor<VoteSkip>(configuration, configuration.VoteSkipConfiguration, voteState);

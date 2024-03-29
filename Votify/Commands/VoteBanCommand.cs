@@ -108,6 +108,9 @@ public class VoteBanCommand : Command
             case VoteResult.VoteCooldown:
                 gameEvent.Origin.Tell(_voteConfig.Translations.TooRecentVote);
                 break;
+            case VoteResult.NotEnoughPlayers:
+                gameEvent.Origin.Tell(_voteConfig.Translations.NotEnoughPlayers);
+                break;
         }
 
         return Task.CompletedTask;

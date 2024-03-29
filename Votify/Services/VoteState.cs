@@ -2,7 +2,6 @@
 using SharedLibraryCore;
 using Votify.Interfaces;
 using Votify.Models;
-using Votify.Models.VoteModel;
 
 namespace Votify.Services;
 

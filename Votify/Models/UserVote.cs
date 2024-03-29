@@ -6,7 +6,7 @@ namespace Votify.Models;
 
 public class UserVote
 {
-    public Server Server { get; set; }
-    public EFClient Client { get; set; }
-    public Vote Vote { get; set; }
+    public required Server Server { get; set; }
+    public required EFClient Client { get; set; }
+    public required Vote Vote { get; set; }
 }

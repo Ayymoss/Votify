@@ -79,7 +79,7 @@ public class VoteKickCommand : Command
             gameEvent.Origin.Tell(_voteConfig.Translations.NotEnoughPlayers);
             return Task.CompletedTask;
         }
-        
+
         var vote = new VoteKick
         {
             Initiator = gameEvent.Origin,
@@ -107,6 +107,9 @@ public class VoteKickCommand : Command
                 break;
             case VoteResult.VoteCooldown:
                 gameEvent.Origin.Tell(_voteConfig.Translations.TooRecentVote);
+                break;
+            case VoteResult.NotEnoughPlayers:
+                gameEvent.Origin.Tell(_voteConfig.Translations.NotEnoughPlayers);
                 break;
         }
 

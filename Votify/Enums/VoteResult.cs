@@ -4,7 +4,10 @@ public enum VoteResult
 {
     Success,
     AlreadyVoted,
-    NoVoteInProgress,
     VoteInProgress,
-    VoteCooldown
+    VoteCooldown,
+    VoteFailed,
+    NoVoteInProgress,
+    NotEnoughPlayers,
+    NotEnoughVotes
 }
