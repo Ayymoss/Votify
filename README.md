@@ -24,4 +24,4 @@ Suggestions? Contact Ayymoss#8334 on Discord.
 ***
 ## Configuration:
 The configuration is commented. Please see what each property does. 
-https://github.com/MrAmos123/Votify/blob/master/Votify/Configuration.cs
+[Configuration.cs](Votify/Configuration/ConfigurationBase.cs)
