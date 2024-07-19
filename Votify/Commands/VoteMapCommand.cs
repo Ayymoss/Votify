@@ -27,14 +27,14 @@ public class VoteMapCommand : Command
         Alias = "vm";
         Permission = EFClient.Permission.User;
         RequiresTarget = false;
-        Arguments = new[]
-        {
+        Arguments =
+        [
             new CommandArgument
             {
                 Name = translationLookup["COMMANDS_ARGS_MAP"],
                 Required = true
             }
-        };
+        ];
     }
 
     public override Task ExecuteAsync(GameEvent gameEvent)
@@ -95,6 +95,9 @@ public class VoteMapCommand : Command
                 break;
             case VoteResult.NotEnoughPlayers:
                 gameEvent.Origin.Tell(_voteConfig.Translations.NotEnoughPlayers);
+                break;
+            case VoteResult.AbusiveVoter:
+                gameEvent.Origin.Tell(_voteConfig.Translations.AbusiveVoter);
                 break;
         }
 

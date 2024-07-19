@@ -75,6 +75,9 @@ public class VoteSkipCommand : Command
             case VoteResult.NotEnoughPlayers:
                 gameEvent.Origin.Tell(_voteConfig.Translations.NotEnoughPlayers);
                 break;
+            case VoteResult.AbusiveVoter:
+                gameEvent.Origin.Tell(_voteConfig.Translations.AbusiveVoter);
+                break;
         }
 
         return Task.CompletedTask;

@@ -27,8 +27,8 @@ public class VoteKickCommand : Command
         Alias = "vk";
         Permission = Data.Models.Client.EFClient.Permission.User;
         RequiresTarget = true;
-        Arguments = new[]
-        {
+        Arguments =
+        [
             new CommandArgument
             {
                 Name = translationLookup["COMMANDS_ARGS_PLAYER"],
@@ -39,7 +39,7 @@ public class VoteKickCommand : Command
                 Name = translationLookup["COMMANDS_ARGS_REASON"],
                 Required = true
             }
-        };
+        ];
     }
 
     public override Task ExecuteAsync(GameEvent gameEvent)
@@ -110,6 +110,9 @@ public class VoteKickCommand : Command
                 break;
             case VoteResult.NotEnoughPlayers:
                 gameEvent.Origin.Tell(_voteConfig.Translations.NotEnoughPlayers);
+                break;
+            case VoteResult.AbusiveVoter:
+                gameEvent.Origin.Tell(_voteConfig.Translations.AbusiveVoter);
                 break;
         }
 

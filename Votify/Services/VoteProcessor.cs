@@ -28,6 +28,8 @@ public abstract class VoteProcessor<TVote>(ConfigurationBase configuration, Vote
 
     public virtual VoteResult CreateVote(Server server, TVote voteBase)
     {
+        var abusiveVoter = IsUserAnAbusiveVoter(voteBase.Initiator);
+        if (abusiveVoter) return VoteResult.AbusiveVoter;
         var result = voteConfiguration.Validate(_lastVote, server);
         if (!result.IsValid) return Enum.Parse<VoteResult>(result.ToString());
 
@@ -36,15 +38,17 @@ public abstract class VoteProcessor<TVote>(ConfigurationBase configuration, Vote
 
         _cancellationTokenSource = new CancellationTokenSource();
         Utilities.ExecuteAfterDelay(configuration.TimeBetweenVoteReminders, token => NotifyServer(server, token),
-            _cancellationTokenSource!.Token);
+            _cancellationTokenSource.Token);
         Utilities.ExecuteAfterDelay(configuration.VoteDuration, token => EndVote(server, false, token),
-            _cancellationTokenSource!.Token);
+            _cancellationTokenSource.Token);
         return VoteResult.Success;
     }
 
     private void ProcessVote(Server server, TVote voteBase)
     {
         var result = voteConfiguration.Validate(server, voteBase);
+
+        HandleAbusiveVoter(voteBase);
 
         if (result.IsValid)
         {
@@ -54,6 +58,31 @@ public abstract class VoteProcessor<TVote>(ConfigurationBase configuration, Vote
         {
             VoteFailed?.Invoke(server, voteBase);
         }
+    }
+
+    private bool IsUserAnAbusiveVoter(EFClient client)
+    {
+        if (!voteState.UserCooldowns.TryGetValue(client, out var cooldownData)) return false;
+
+        var nowUtc = TimeProvider.System.GetUtcNow();
+        if (cooldownData.CooldownEnd.HasValue && cooldownData.CooldownEnd.Value > nowUtc) return true;
+
+        cooldownData.LastVotes.RemoveAll(voteTime => voteTime < nowUtc.Subtract(configuration.AbusiveVoterWindow));
+        var recentVotes = cooldownData.LastVotes.Count;
+
+        return recentVotes >= configuration.AbusiveVoterThreshold;
+    }
+
+    private void HandleAbusiveVoter(TVote voteBase)
+    {
+        voteState.UserCooldowns.AddOrUpdate(voteBase.Initiator,
+            new VoteState.CooldownData([TimeProvider.System.GetUtcNow()],
+                TimeProvider.System.GetUtcNow().Add(configuration.AbusiveVoterCooldown)), (_, cooldownData) =>
+            {
+                cooldownData.LastVotes.Add(TimeProvider.System.GetUtcNow());
+                return cooldownData;
+            }
+        );
     }
 
     private Task EndVote(Server server, bool endImmediately, CancellationToken token)
@@ -79,7 +108,7 @@ public abstract class VoteProcessor<TVote>(ConfigurationBase configuration, Vote
 
         VoteNotification?.Invoke(server, (TVote)voteBase.Item1);
         Utilities.ExecuteAfterDelay(configuration.TimeBetweenVoteReminders, t => NotifyServer(server, t),
-            _cancellationTokenSource!.Token);
+            _cancellationTokenSource?.Token ?? CancellationToken.None);
         return Task.CompletedTask;
     }
 

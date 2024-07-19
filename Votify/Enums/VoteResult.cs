@@ -9,5 +9,6 @@ public enum VoteResult
     VoteFailed,
     NoVoteInProgress,
     NotEnoughPlayers,
-    NotEnoughVotes
+    NotEnoughVotes,
+    AbusiveVoter
 }

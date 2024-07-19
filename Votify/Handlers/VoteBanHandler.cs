@@ -27,8 +27,7 @@ public class VoteBanHandler : VoteHandler<VoteBan>
     {
         try
         {
-            var voteActionMessage = _configuration.Translations.VoteAction
-                .FormatExt(vote.Initiator.CleanedName, vote.Initiator.ClientId, vote.Reason);
+            var voteActionMessage = _configuration.Translations.VoteAction.FormatExt(vote.Reason);
             var abstains = server.ConnectedClients.Count(x => !x.IsBot) - vote.Votes.Count;
             var votePassedMessage = _configuration.Translations.VotePassed
                 .FormatExt(_configuration.Translations.Ban, vote.YesVotes, Math.Max(0, abstains), vote.NoVotes, vote.Target.CleanedName);

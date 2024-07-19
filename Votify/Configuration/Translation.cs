@@ -32,5 +32,6 @@ public class Translation
     public string Ban { get; set; } = "(Color::Accent)Ban(Color::White)";
     public string Skip { get; set; } = "(Color::Accent)Skip(Color::White)";
     public string Map { get; set; } = "(Color::Accent)Map(Color::White)";
+    public string AbusiveVoter { get; set; } = "(Color::Yellow)VOTE(Color::White): You have voted too many times recently. Please wait before voting again";
     // @formatter:on
 }

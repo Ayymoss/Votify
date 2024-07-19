@@ -20,6 +20,21 @@ public class ConfigurationBase
     public TimeSpan TimeBetweenVoteReminders { get; set; } = TimeSpan.FromSeconds(5);
 
     /// <summary>
+    /// The number of votes a player can cast before being considered abusive
+    /// </summary>
+    public int AbusiveVoterThreshold { get; set; } = 2;
+
+    /// <summary>
+    /// The window of time in which a player can cast a number of votes before being considered abusive
+    /// </summary>
+    public TimeSpan AbusiveVoterWindow { get; set; } = TimeSpan.FromMinutes(60);
+
+    /// <summary>
+    /// The duration that a frequent voter will be put on cooldown for
+    /// </summary>
+    public TimeSpan AbusiveVoterCooldown { get; set; } = TimeSpan.FromMinutes(60);
+
+    /// <summary>
     /// A list of Server IPs that the plugin will be disabled on
     /// </summary>
     public Dictionary<string, VoteType[]> DisabledServers { get; set; } = new()
