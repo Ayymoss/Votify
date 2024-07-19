@@ -20,7 +20,7 @@ public class ConfigurationBase
     public TimeSpan TimeBetweenVoteReminders { get; set; } = TimeSpan.FromSeconds(5);
 
     /// <summary>
-    /// The number of votes a player can cast before being considered abusive
+    /// The number of votes a player can cast in below window before being considered abusive
     /// </summary>
     public int AbusiveVoterThreshold { get; set; } = 2;
 

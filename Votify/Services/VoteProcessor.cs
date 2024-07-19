@@ -48,10 +48,9 @@ public abstract class VoteProcessor<TVote>(ConfigurationBase configuration, Vote
     {
         var result = voteConfiguration.Validate(server, voteBase);
 
-        HandleAbusiveVoter(voteBase);
-
         if (result.IsValid)
         {
+            MonitorVoter(voteBase);
             VoteSucceeded?.Invoke(server, voteBase);
         }
         else
@@ -65,19 +64,22 @@ public abstract class VoteProcessor<TVote>(ConfigurationBase configuration, Vote
         if (!voteState.UserCooldowns.TryGetValue(client, out var cooldownData)) return false;
 
         var nowUtc = TimeProvider.System.GetUtcNow();
+
         if (cooldownData.CooldownEnd.HasValue && cooldownData.CooldownEnd.Value > nowUtc) return true;
 
         cooldownData.LastVotes.RemoveAll(voteTime => voteTime < nowUtc.Subtract(configuration.AbusiveVoterWindow));
         var recentVotes = cooldownData.LastVotes.Count;
 
-        return recentVotes >= configuration.AbusiveVoterThreshold;
+        if (recentVotes < configuration.AbusiveVoterThreshold) return false;
+        cooldownData.CooldownEnd = nowUtc.Add(configuration.AbusiveVoterCooldown);
+
+        return true;
     }
 
-    private void HandleAbusiveVoter(TVote voteBase)
+    private void MonitorVoter(TVote voteBase)
     {
-        voteState.UserCooldowns.AddOrUpdate(voteBase.Initiator,
-            new VoteState.CooldownData([TimeProvider.System.GetUtcNow()],
-                TimeProvider.System.GetUtcNow().Add(configuration.AbusiveVoterCooldown)), (_, cooldownData) =>
+        voteState.UserCooldowns.AddOrUpdate(voteBase.Initiator, new VoteState.CooldownData(TimeProvider.System.GetUtcNow()),
+            (_, cooldownData) =>
             {
                 cooldownData.LastVotes.Add(TimeProvider.System.GetUtcNow());
                 return cooldownData;

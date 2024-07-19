@@ -10,5 +10,10 @@ public class VoteState
 {
     public ConcurrentDictionary<Server, Tuple<VoteBase, IVoteProcessor>> Votes { get; set; } = [];
     public ConcurrentDictionary<EFClient, CooldownData> UserCooldowns { get; set; } = [];
-    public record CooldownData(List<DateTimeOffset> LastVotes, DateTimeOffset? CooldownEnd);
+
+    public class CooldownData(DateTimeOffset firstVote)
+    {
+        public List<DateTimeOffset> LastVotes { get; set; } = [firstVote];
+        public DateTimeOffset? CooldownEnd { get; set; }
+    }
 }
