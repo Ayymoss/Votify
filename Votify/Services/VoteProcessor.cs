@@ -22,8 +22,7 @@ public abstract class VoteProcessor<TVote>(ConfigurationBase configuration, Vote
     public virtual VoteResult RegisterUserVote(UserVote userVote)
     {
         if (!voteState.Votes.TryGetValue(userVote.Server, out var voteBase)) return VoteResult.NoVoteInProgress;
-        if (voteBase.Item1.Votes.TryAdd(userVote.Client, userVote.Vote)) return VoteResult.Success;
-        return VoteResult.AlreadyVoted;
+        return voteBase.Item1.Votes.TryAdd(userVote.Client, userVote.Vote) ? VoteResult.Success : VoteResult.AlreadyVoted;
     }
 
     public virtual VoteResult CreateVote(Server server, TVote voteBase)
@@ -61,24 +60,21 @@ public abstract class VoteProcessor<TVote>(ConfigurationBase configuration, Vote
 
     private bool IsUserAnAbusiveVoter(EFClient client)
     {
-        if (!voteState.UserCooldowns.TryGetValue(client, out var cooldownData)) return false;
+        if (!voteState.UserVoteCooldownTracker.TryGetValue(client, out var cooldownData)) return false;
 
         var nowUtc = TimeProvider.System.GetUtcNow();
-
         if (cooldownData.CooldownEnd.HasValue && cooldownData.CooldownEnd.Value > nowUtc) return true;
 
-        cooldownData.LastVotes.RemoveAll(voteTime => voteTime < nowUtc.Subtract(configuration.AbusiveVoterWindow));
-        var recentVotes = cooldownData.LastVotes.Count;
-
-        if (recentVotes < configuration.AbusiveVoterThreshold) return false;
+        if (cooldownData.LastVotes.Count < configuration.AbusiveVoterThreshold) return false;
         cooldownData.CooldownEnd = nowUtc.Add(configuration.AbusiveVoterCooldown);
+        cooldownData.LastVotes.Clear(); // clear the votes to prevent the user from being flagged again
 
         return true;
     }
 
     private void MonitorVoter(TVote voteBase)
     {
-        voteState.UserCooldowns.AddOrUpdate(voteBase.Initiator, new VoteState.CooldownData(TimeProvider.System.GetUtcNow()),
+        voteState.UserVoteCooldownTracker.AddOrUpdate(voteBase.Initiator, new VoteState.VoteCooldownInfo(TimeProvider.System.GetUtcNow()),
             (_, cooldownData) =>
             {
                 cooldownData.LastVotes.Add(TimeProvider.System.GetUtcNow());
