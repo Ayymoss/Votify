@@ -2,6 +2,7 @@
 
 public class Translation
 {
+
     // @formatter:off
     public string NotEnoughVotes { get; set; } = "(Color::Yellow)VOTE {{type}}(Color::White): (Color::Red)Failed! Not enough votes!";
     public string NotEnoughYesVotes { get; set; } = "(Color::Yellow)VOTE {{type}}(Color::White): (Color::Red)Failed! Not enough Yes votes!";
@@ -19,7 +20,7 @@ public class Translation
     public string AlreadyVoted { get; set; } = "(Color::Yellow)VOTE(Color::White): You have already voted";
     public string VoteDisabled { get; set; } = "(Color::Yellow)VOTE(Color::White): {{type}} votes are disabled";
     public string TooRecentVote { get; set; } = "(Color::Yellow)VOTE(Color::White): There was a recent vote, please wait";
-    public string VoteAction { get; set; } = "VOTE: {{reason}}";
+    public string VoteAction { get; set; } = "VOTE: {{reason}} [y{{yes}}:a{{abstains}}:n{{no}}]";
     public string MapNotFound { get; set; } = "(Color::Yellow)VOTE(Color::White): Map not found";
     public string NotEnoughPlayers { get; set; } = "(Color::Yellow)VOTE(Color::White): Not enough players to start a vote";
     public string DenySelfTarget { get; set; } = "(Color::Yellow)VOTE(Color::White): You cannot target yourself";
