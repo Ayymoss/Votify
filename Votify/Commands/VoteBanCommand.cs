@@ -68,7 +68,7 @@ public class VoteBanCommand : Command
             return Task.CompletedTask;
         }
 
-        if (gameEvent.Target.Level is not Data.Models.Client.EFClient.Permission.User)
+        if (gameEvent.Target.Level > Data.Models.Client.EFClient.Permission.Flagged)
         {
             gameEvent.Origin.Tell(_voteConfig.Translations.CannotVoteRanked);
             return Task.CompletedTask;
