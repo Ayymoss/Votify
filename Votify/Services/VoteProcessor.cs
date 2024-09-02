@@ -29,7 +29,7 @@ public abstract class VoteProcessor<TVote>(ConfigurationBase configuration, Vote
     {
         var abusiveVoter = IsUserAnAbusiveVoter(voteBase.Initiator);
         if (abusiveVoter) return VoteResult.AbusiveVoter;
-        var result = voteConfiguration.Validate(_lastVote, server);
+        var result = voteConfiguration.Validate(_lastVote);
         if (!result.IsValid) return Enum.Parse<VoteResult>(result.ToString());
 
         if (!voteState.Votes.TryAdd(server, new Tuple<VoteBase, IVoteProcessor>(voteBase, this)))

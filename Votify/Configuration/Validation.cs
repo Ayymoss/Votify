@@ -7,15 +7,11 @@ namespace Votify.Configuration;
 
 public class Validation : AbstractValidator<VoteConfigurationBase>
 {
-    public Validation(DateTimeOffset lastVote, IGameServer server)
+    public Validation(DateTimeOffset lastVote)
     {
         RuleFor(x => x.VoteCooldown)
             .LessThan(DateTimeOffset.UtcNow - lastVote)
             .WithMessage(VoteResult.VoteCooldown.ToString());
-
-        RuleFor(x => x)
-            .Must(config => IsEnoughPlayers(config, server))
-            .WithMessage(VoteResult.NotEnoughPlayers.ToString());
     }
 
     public Validation(IGameServer server, VoteBase voteBase)
@@ -25,7 +21,7 @@ public class Validation : AbstractValidator<VoteConfigurationBase>
             .WithMessage(VoteResult.NotEnoughVotes.ToString());
 
         RuleFor(x => x)
-            .Must(config => IsEnoughPlayers(config, server))
+            .Must(config => IsEnoughPlayers(config, voteBase))
             .WithMessage(VoteResult.NotEnoughPlayers.ToString());
 
         RuleFor(x => x)
@@ -42,8 +38,10 @@ public class Validation : AbstractValidator<VoteConfigurationBase>
     }
 
     // MinimumPlayersRequired
-    private static bool IsEnoughPlayers(VoteConfigurationBase config, IGameServer server) =>
-        server.ConnectedClients.Count(x => !x.IsBot) >= config.MinimumPlayersRequired;
+    private static bool IsEnoughPlayers(VoteConfigurationBase config, VoteBase voteBase)
+    {
+        return voteBase.Votes.Count >= config.MinimumPlayersRequired;
+    }
 
     // VotePassPercentage
     private static bool HasVotePercentage(VoteConfigurationBase config, VoteBase voteBase)

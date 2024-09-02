@@ -12,9 +12,9 @@ public abstract class VoteConfigurationBase
     public int MinimumPlayersRequired { get; set; } = 4;
     public TimeSpan VoteCooldown { get; set; } = TimeSpan.FromMinutes(5);
 
-    public virtual ValidationResult Validate(DateTimeOffset lastVote, Server server)
+    public virtual ValidationResult Validate(DateTimeOffset lastVote)
     {
-        var validator = new Validation(lastVote, server);
+        var validator = new Validation(lastVote);
         return validator.Validate(this);
     }
 
