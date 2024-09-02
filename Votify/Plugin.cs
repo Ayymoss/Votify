@@ -21,7 +21,7 @@ public class Plugin : IPluginV2
 {
     private readonly VoteState _voteState;
     public string Name => "Votify";
-    public string Version => "2024-07-21";
+    public string Version => "2024-09-03";
     public string Author => "Amos";
 
     public Plugin(ConfigurationBase configuration, VoteState voteState, IServiceProvider serviceProvider)
@@ -29,7 +29,7 @@ public class Plugin : IPluginV2
         _voteState = voteState;
         if (!configuration.IsEnabled) return;
 
-        // Register handler subscriptions
+        // Call constructors
         serviceProvider.GetRequiredService<VoteHandler<VoteKick>>();
         serviceProvider.GetRequiredService<VoteHandler<VoteBan>>();
         serviceProvider.GetRequiredService<VoteHandler<VoteSkip>>();

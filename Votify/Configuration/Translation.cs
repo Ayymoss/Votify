@@ -1,4 +1,6 @@
-﻿namespace Votify.Configuration;
+﻿using System.Drawing;
+
+namespace Votify.Configuration;
 
 public class Translation
 {
@@ -34,5 +36,6 @@ public class Translation
     public string Skip { get; set; } = "(Color::Accent)Skip(Color::White)";
     public string Map { get; set; } = "(Color::Accent)Map(Color::White)";
     public string AbusiveVoter { get; set; } = "(Color::Yellow)VOTE(Color::White): You have voted too many times recently. Please wait before voting again";
+    public string VoteDisabledPoorPerformance { get; set; } = "[(Color::Red){{kdr}} (Color::White)< (Color::Green){{target}}(Color::White)] (Color::Yellow)Improve your KDR to unlock player voting";
     // @formatter:on
 }
