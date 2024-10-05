@@ -4,8 +4,7 @@ namespace Votify.Configuration;
 
 public class Translation
 {
-
-    // @formatter:off
+// @formatter:off
     public string NotEnoughVotes { get; set; } = "(Color::Yellow)VOTE {{type}}(Color::White): (Color::Red)Failed! Not enough votes!";
     public string NotEnoughYesVotes { get; set; } = "(Color::Yellow)VOTE {{type}}(Color::White): (Color::Red)Failed! Not enough Yes votes!";
     public string OpenVoteAutoMessage { get; set; } = "(Color::Yellow)VOTE {{type}}(Color::White): [(Color::Green){{yes}}(Color::White):{{abstains}}:(Color::Red){{no}}(Color::White) @ (Color::Yellow){{target}}(Color::White)] Type (Color::Green)!y (Color::White)or (Color::Red)!n (Color::White)to vote";
@@ -37,5 +36,8 @@ public class Translation
     public string Map { get; set; } = "(Color::Accent)Map(Color::White)";
     public string AbusiveVoter { get; set; } = "(Color::Yellow)VOTE(Color::White): You have voted too many times recently. Please wait before voting again";
     public string VoteDisabledPoorPerformance { get; set; } = "[(Color::Red){{kdr}} (Color::White)< (Color::Green){{target}}(Color::White)] (Color::Yellow)Improve your KDR to unlock player voting";
+    public string VoteBlocked { get; set; } = "(Color::Yellow)VOTE(Color::White): You do not have permission to create player votes";
+    public string UserVoteBlocked { get; set; } = "(Color::Yellow)VOTE(Color::White): You have blocked player voting for {{target}}";
+    public string UserVoteUnblocked { get; set; } = "(Color::Yellow)VOTE(Color::White): You have unblocked player voting for {{target}}";
     // @formatter:on
 }

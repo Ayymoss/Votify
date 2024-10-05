@@ -12,6 +12,7 @@ using Votify.Enums;
 using Votify.Models;
 using Votify.Models.VoteModel;
 using Votify.Processors;
+using Votify.Services;
 
 namespace Votify.Commands;
 
@@ -20,14 +21,16 @@ public class VoteKickCommand : Command
     private readonly ConfigurationBase _voteConfig;
     private readonly VoteKickProcessor _processor;
     private readonly IDatabaseContextFactory _contextFactory;
+    private readonly MetaManager _metaManager;
 
     public VoteKickCommand(CommandConfiguration config, ITranslationLookup translationLookup, ConfigurationBase voteConfig,
-        VoteKickProcessor processor, IDatabaseContextFactory contextFactory)
+        VoteKickProcessor processor, IDatabaseContextFactory contextFactory, MetaManager metaManager)
         : base(config, translationLookup)
     {
         _voteConfig = voteConfig;
         _processor = processor;
         _contextFactory = contextFactory;
+        _metaManager = metaManager;
         Name = "votekick";
         Description = "starts a vote to kick a player";
         Alias = "vk";
@@ -56,6 +59,12 @@ public class VoteKickCommand : Command
             return;
         }
 
+        if (await _metaManager.IsUserVoteBlockedAsync(gameEvent.Origin.ClientId))
+        {
+            gameEvent.Origin.Tell(_voteConfig.Translations.VoteBlocked);
+            return;
+        }
+
         if (_voteConfig.DisabledServers.TryGetValue(gameEvent.Owner.Id, out var voteType) && voteType.Contains(VoteType.Kick))
         {
             gameEvent.Origin.Tell(_voteConfig.Translations.VoteDisabledServer);
@@ -67,17 +76,15 @@ public class VoteKickCommand : Command
         {
             var context = _contextFactory.CreateContext(false);
 
-            var stats = await context.ClientStatistics
+            var dbStats = await context.ClientStatistics
                 .Where(x => x.ClientId == gameEvent.Origin.ClientId)
                 .GroupBy(x => x.ClientId)
-                .Select(g => new KdrStats(g.Sum(x => x.Kills), g.Sum(x => x.Deaths)))
+                .Select(g => new { Kills = g.Sum(x => x.Kills), Deaths = g.Sum(x => x.Deaths) })
                 .FirstOrDefaultAsync();
 
-            if (stats is null || stats.Deaths is 0 || stats.Kills is 0)
-            {
-                var matchStats = gameEvent.Origin.GetAdditionalProperty<EFClientStatistics>("ClientStats");
-                stats = new KdrStats(matchStats?.MatchData?.Kills ?? 0, matchStats?.MatchData?.Deaths ?? 0);
-            }
+            var matchStats = gameEvent.Origin.GetAdditionalProperty<EFClientStatistics>("ClientStats");
+            var stats = new KdrStats(dbStats?.Kills ?? 0 + matchStats?.MatchData?.Kills ?? 0,
+                dbStats?.Deaths ?? 0 + matchStats?.MatchData?.Deaths ?? 0);
 
             // Small constant to prevent divide by zero.
             var kdr = stats.Kills / (stats.Deaths + 0.00001f);
