@@ -10,10 +10,12 @@ public class Translation
     public string OpenVoteAutoMessage { get; set; } = "(Color::Yellow)VOTE {{type}}(Color::White): [(Color::Green){{yes}}(Color::White):{{abstains}}:(Color::Red){{no}}(Color::White) @ (Color::Yellow){{target}}(Color::White)] Type (Color::Green)!y (Color::White)or (Color::Red)!n (Color::White)to vote";
     public string OpenVoteAutoMessageNoTarget { get; set; } = "(Color::Yellow)VOTE {{type}}(Color::White): [(Color::Green){{yes}}(Color::White):{{abstains}}:(Color::Red){{no}}(Color::White)] Type (Color::Green)!y (Color::White)or (Color::Red)!n (Color::White)to vote";
     public string VotePassed { get; set; } = "(Color::Yellow)VOTE {{type}}(Color::White): [(Color::Green){{yes}}(Color::White):{{abstains}}:(Color::Red){{no}}(Color::White) @ (Color::Yellow){{target}}(Color::White)] (Color::Green)Passed!";
+    public string VoteQueued { get; set; } = "(Color::Yellow)VOTE {{type}}(Color::White): (Color::Green)Queued! (Color::Yellow){{target}} (Color::White)will be played next";
     public string VoteCancelledDueToPlayerDisconnect { get; set; } = "(Color::Yellow)VOTE(Color::White): Vote {{type}} cancelled due to player disconnect";
     public string VoteInProgress { get; set; } = "(Color::Yellow)VOTE(Color::White): There is already a vote in progress";
     public string KickBanVoteStarted { get; set; } = "(Color::Yellow)VOTE(Color::White): (Color::Accent){{origin}} (Color::White)wants to (Color::Accent){{type}} (Color::Yellow){{target}} (Color::White)for (Color::Accent){{reason}}";
     public string MapVoteStarted { get; set; } = "(Color::Yellow)VOTE(Color::White): (Color::Accent){{origin}} (Color::White)wants to (Color::Accent)Change (Color::White)the map to (Color::Yellow){{mapName}}";
+    public string QueueVoteStarted { get; set; } = "(Color::Yellow)VOTE(Color::White): (Color::Accent){{origin}} (Color::White)wants to (Color::Accent)Queue (Color::White)the map (Color::Yellow){{mapName}} (Color::White)for the next round";
     public string SkipVoteStarted { get; set; } = "(Color::Yellow)VOTE(Color::White): (Color::Accent){{origin}} (Color::White)wants to (Color::Accent)Skip (Color::White)this map";
     public string VoteCancelled { get; set; } = "(Color::Yellow)VOTE(Color::White): Vote cancelled";
     public string NoVoteInProgress { get; set; } = "(Color::Yellow)VOTE(Color::White): No vote in progress";

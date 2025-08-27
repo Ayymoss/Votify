@@ -11,6 +11,7 @@ using Votify.Handlers;
 using Votify.Models.VoteModel;
 using Votify.Processors;
 using Votify.Services;
+using SharedLibraryCore.Events.Game;
 
 namespace Votify;
 
@@ -26,6 +27,7 @@ public class Plugin : IPluginV2
     private readonly IInteractionRegistration _interactionRegistration;
     private readonly MetaManager _metaManager;
     private readonly IRemoteCommandService _remoteCommandService;
+    private readonly QueueState _queueState;
 
     private const string VoteInteraction = "Webfront::Profile::VoteBlock";
     public const string BannedVoterKey = "VotifyBanState";
@@ -35,12 +37,14 @@ public class Plugin : IPluginV2
     public string Author => "Amos";
 
     public Plugin(ConfigurationBase configuration, VoteState voteState, IServiceProvider serviceProvider,
-        IInteractionRegistration interactionRegistration, MetaManager metaManager, IRemoteCommandService remoteCommandService)
+        IInteractionRegistration interactionRegistration, MetaManager metaManager, IRemoteCommandService remoteCommandService,
+        QueueState queueState)
     {
         _voteState = voteState;
         _interactionRegistration = interactionRegistration;
         _metaManager = metaManager;
         _remoteCommandService = remoteCommandService;
+        _queueState = queueState;
         if (!configuration.IsEnabled) return;
 
         // Call constructors
@@ -48,8 +52,10 @@ public class Plugin : IPluginV2
         serviceProvider.GetRequiredService<VoteHandler<VoteBan>>();
         serviceProvider.GetRequiredService<VoteHandler<VoteSkip>>();
         serviceProvider.GetRequiredService<VoteHandler<VoteMap>>();
+        serviceProvider.GetRequiredService<VoteHandler<VoteQueueMap>>();
         IManagementEventSubscriptions.Load += OnLoad;
         IManagementEventSubscriptions.ClientStateDisposed += OnClientDispose;
+        IGameEventSubscriptions.MonitoringEvent += OnMonitoringEvent;
     }
 
     public static void RegisterDependencies(IServiceCollection serviceCollection)
@@ -58,16 +64,19 @@ public class Plugin : IPluginV2
 
         serviceCollection.AddSingleton<MetaManager>();
         serviceCollection.AddSingleton<VoteState>();
+        serviceCollection.AddSingleton<QueueState>();
 
         serviceCollection.AddSingleton<VoteKickProcessor>();
         serviceCollection.AddSingleton<VoteBanProcessor>();
         serviceCollection.AddSingleton<VoteSkipProcessor>();
         serviceCollection.AddSingleton<VoteMapProcessor>();
+        serviceCollection.AddSingleton<VoteQueueMapProcessor>();
 
         serviceCollection.AddSingleton<VoteHandler<VoteKick>, VoteKickHandler>();
         serviceCollection.AddSingleton<VoteHandler<VoteBan>, VoteBanHandler>();
         serviceCollection.AddSingleton<VoteHandler<VoteSkip>, VoteSkipHandler>();
         serviceCollection.AddSingleton<VoteHandler<VoteMap>, VoteMapHandler>();
+        serviceCollection.AddSingleton<VoteHandler<VoteQueueMap>, VoteQueueMapHandler>();
     }
 
     private Task OnLoad(IManager manager, CancellationToken __)
@@ -156,5 +165,24 @@ public class Plugin : IPluginV2
                 return string.Join(".", commandResponse.Select(result => result.Response));
             }
         };
+    }
+
+    private async Task OnMonitoringEvent(GameMonitoringEvent e, CancellationToken token)
+    {
+        if (e.GameEvent.Type != GameEvent.EventType.MapEnd)
+        {
+            return;
+        }
+
+        var server = e.GameEvent.Owner;
+        var queuedMap = _queueState.GetQueuedMap(server);
+
+        if (queuedMap is null)
+        {
+            return;
+        }
+
+        await server.ExecuteCommandAsync($"map {queuedMap.Name}");
+        _queueState.ClearQueuedMap(server);
     }
 }

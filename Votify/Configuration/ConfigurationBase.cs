@@ -47,6 +47,7 @@ public class ConfigurationBase
     public VoteKickConfiguration VoteKickConfiguration { get; set; } = new();
     public VoteMapConfiguration VoteMapConfiguration { get; set; } = new();
     public VoteSkipConfiguration VoteSkipConfiguration { get; set; } = new();
+    public VoteQueueMapConfiguration VoteQueueMapConfiguration { get; set; } = new();
 
     /// <summary>
     /// Translation strings for the plugin
