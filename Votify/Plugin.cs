@@ -108,7 +108,7 @@ public class Plugin : IPluginV2
         {
             EntityId = targetClientId,
             Name = "Block from Voting",
-            DisplayMeta = "ph-play",
+            DisplayMeta = "ph-pause",
             ActionPath = "DynamicAction",
             ActionMeta = new Dictionary<string, string>
             {
@@ -136,7 +136,7 @@ public class Plugin : IPluginV2
         {
             EntityId = targetClientId,
             Name = "Unblock from Voting",
-            DisplayMeta = "ph-pause",
+            DisplayMeta = "ph-play",
             ActionPath = "DynamicAction",
             ActionMeta = new Dictionary<string, string>
             {
