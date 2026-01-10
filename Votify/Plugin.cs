@@ -31,7 +31,7 @@ public class Plugin : IPluginV2
     public const string BannedVoterKey = "VotifyBanState";
 
     public string Name => "Votify";
-    public string Version => "2024-10-05";
+    public string Version => "2026-01-10";
     public string Author => "Amos";
 
     public Plugin(ConfigurationBase configuration, VoteState voteState, IServiceProvider serviceProvider,
@@ -108,7 +108,7 @@ public class Plugin : IPluginV2
         {
             EntityId = targetClientId,
             Name = "Block from Voting",
-            DisplayMeta = "oi-media-pause",
+            DisplayMeta = "ph-play",
             ActionPath = "DynamicAction",
             ActionMeta = new Dictionary<string, string>
             {
@@ -136,7 +136,7 @@ public class Plugin : IPluginV2
         {
             EntityId = targetClientId,
             Name = "Unblock from Voting",
-            DisplayMeta = "oi-media-play",
+            DisplayMeta = "ph-pause",
             ActionPath = "DynamicAction",
             ActionMeta = new Dictionary<string, string>
             {
