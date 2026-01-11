@@ -1,10 +1,8 @@
-﻿using System.Drawing;
-
-namespace Votify.Configuration;
+﻿namespace Votify.Configuration;
 
 public class Translation
 {
-// @formatter:off
+    // @formatter:off
     public string NotEnoughVotes { get; set; } = "(Color::Yellow)VOTE {{type}}(Color::White): (Color::Red)Failed! Not enough votes!";
     public string NotEnoughYesVotes { get; set; } = "(Color::Yellow)VOTE {{type}}(Color::White): (Color::Red)Failed! Not enough Yes votes!";
     public string OpenVoteAutoMessage { get; set; } = "(Color::Yellow)VOTE {{type}}(Color::White): [(Color::Green){{yes}}(Color::White):{{abstains}}:(Color::Red){{no}}(Color::White) @ (Color::Yellow){{target}}(Color::White)] Type (Color::Green)!y (Color::White)or (Color::Red)!n (Color::White)to vote";
