@@ -1,5 +1,4 @@
-﻿using System.Text.Json;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using SharedLibraryCore;
 using SharedLibraryCore.Events.Management;
 using SharedLibraryCore.Helpers;
@@ -31,7 +30,7 @@ public class Plugin : IPluginV2
     public const string BannedVoterKey = "VotifyBanState";
 
     public string Name => "Votify";
-    public string Version => "2026-01-10";
+    public string Version => "2026-06-06";
     public string Author => "Amos";
 
     public Plugin(ConfigurationBase configuration, VoteState voteState, IServiceProvider serviceProvider,
@@ -83,8 +82,10 @@ public class Plugin : IPluginV2
             var server = manager.GetServers().First();
 
             return isUserVoteBlocked
-                ? CreateVoteUnblockInteraction(targetClientId.Value, server, GetCommandName)
-                : CreateVoteBlockInteraction(targetClientId.Value, server, GetCommandName);
+                ? CreateVoteInteraction(targetClientId.Value, server, GetCommandName,
+                    "Unblock from Voting", "ph-play", "Unblock", "Allow Access To Voting", typeof(VoteUnblockCommand))
+                : CreateVoteInteraction(targetClientId.Value, server, GetCommandName,
+                    "Block from Voting", "ph-pause", "Block", "Deny Access To Voting", typeof(VoteBlockCommand));
 
             string GetCommandName(Type commandType) =>
                 manager.Commands.FirstOrDefault(command => command.GetType() == commandType)?.Name ?? string.Empty;
@@ -102,19 +103,20 @@ public class Plugin : IPluginV2
         return Task.CompletedTask;
     }
 
-    private InteractionData CreateVoteBlockInteraction(int targetClientId, Server server, Func<Type, string> getCommandNameFunc)
+    private InteractionData CreateVoteInteraction(int targetClientId, Server server, Func<Type, string> getCommandNameFunc,
+        string name, string icon, string buttonLabel, string displayName, Type commandType)
     {
         return new InteractionData
         {
             EntityId = targetClientId,
-            Name = "Block from Voting",
-            DisplayMeta = "ph-pause",
+            Name = name,
+            DisplayMeta = icon,
             ActionPath = "DynamicAction",
             ActionMeta = new Dictionary<string, string>
             {
                 { "InteractionId", VoteInteraction },
-                { "ActionButtonLabel", "Block" },
-                { "Name", "Deny Access To Voting" },
+                { "ActionButtonLabel", buttonLabel },
+                { "Name", displayName },
                 { "ShouldRefresh", true.ToString() }
             },
             MinimumPermission = Data.Models.Client.EFClient.Permission.Administrator,
@@ -124,35 +126,7 @@ public class Plugin : IPluginV2
                 if (!targetId.HasValue) return "No target client id specified";
 
                 var commandResponse = await _remoteCommandService
-                    .Execute(originId, targetId, getCommandNameFunc(typeof(VoteBlockCommand)), null, server);
-                return string.Join(".", commandResponse.Select(result => result.Response));
-            }
-        };
-    }
-
-    private InteractionData CreateVoteUnblockInteraction(int targetClientId, Server server, Func<Type, string> getCommandNameFunc)
-    {
-        return new InteractionData
-        {
-            EntityId = targetClientId,
-            Name = "Unblock from Voting",
-            DisplayMeta = "ph-play",
-            ActionPath = "DynamicAction",
-            ActionMeta = new Dictionary<string, string>
-            {
-                { "InteractionId", VoteInteraction },
-                { "ActionButtonLabel", "Unblock" },
-                { "Name", "Allow Access To Voting" },
-                { "ShouldRefresh", true.ToString() }
-            },
-            MinimumPermission = Data.Models.Client.EFClient.Permission.Administrator,
-            Source = Name,
-            Action = async (originId, targetId, gameName, meta, cancellationToken) =>
-            {
-                if (!targetId.HasValue) return "No target client id specified";
-
-                var commandResponse = await _remoteCommandService
-                    .Execute(originId, targetId, getCommandNameFunc(typeof(VoteUnblockCommand)), null, server);
+                    .Execute(originId, targetId, getCommandNameFunc(commandType), null, server);
                 return string.Join(".", commandResponse.Select(result => result.Response));
             }
         };

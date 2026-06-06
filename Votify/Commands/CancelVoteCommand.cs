@@ -32,8 +32,7 @@ public class CancelVoteCommand : Command
             return Task.CompletedTask;
         }
 
-        voteBase.Item2.CancelVote(gameEvent.Owner);
-        gameEvent.Origin.Tell(_voteConfig.Translations.VoteCancelled);
+        voteBase.Item2.CancelVote(gameEvent.Owner, gameEvent.Origin.CleanedName);
 
         return Task.CompletedTask;
     }

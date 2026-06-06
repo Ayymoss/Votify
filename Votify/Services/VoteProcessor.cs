@@ -25,6 +25,8 @@ public abstract class VoteProcessor<TVote>(ConfigurationBase configuration, Vote
         return voteBase.Item1.Votes.TryAdd(userVote.Client, userVote.Vote) ? VoteResult.Success : VoteResult.AlreadyVoted;
     }
 
+    VoteResult IVoteProcessor.CreateVote(Server server, VoteBase voteBase) => CreateVote(server, (TVote)voteBase);
+
     public virtual VoteResult CreateVote(Server server, TVote voteBase)
     {
         var abusiveVoter = IsUserAnAbusiveVoter(voteBase.Initiator);
@@ -36,10 +38,12 @@ public abstract class VoteProcessor<TVote>(ConfigurationBase configuration, Vote
             return VoteResult.VoteInProgress;
 
         _cancellationTokenSource = new CancellationTokenSource();
-        Utilities.ExecuteAfterDelay(configuration.TimeBetweenVoteReminders, token => NotifyServer(server, token),
-            _cancellationTokenSource.Token);
         Utilities.ExecuteAfterDelay(configuration.VoteDuration, token => EndVote(server, false, token),
             _cancellationTokenSource.Token);
+
+        // Broadcast the vote prompt immediately so non-initiators see how to vote without
+        // waiting for the first reminder interval. NotifyServer re-schedules itself thereafter.
+        NotifyServer(server, _cancellationTokenSource.Token);
         return VoteResult.Success;
     }
 
@@ -65,9 +69,12 @@ public abstract class VoteProcessor<TVote>(ConfigurationBase configuration, Vote
         var nowUtc = TimeProvider.System.GetUtcNow();
         if (cooldownData.CooldownEnd.HasValue && cooldownData.CooldownEnd.Value > nowUtc) return true;
 
+        var windowStart = nowUtc - configuration.AbusiveVoterWindow;
+        cooldownData.LastVotes.RemoveAll(v => v < windowStart);
+
         if (cooldownData.LastVotes.Count < configuration.AbusiveVoterThreshold) return false;
         cooldownData.CooldownEnd = nowUtc.Add(configuration.AbusiveVoterCooldown);
-        cooldownData.LastVotes.Clear(); // clear the votes to prevent the user from being flagged again
+        cooldownData.LastVotes.Clear();
 
         return true;
     }
@@ -97,7 +104,7 @@ public abstract class VoteProcessor<TVote>(ConfigurationBase configuration, Vote
     private Task NotifyServer(Server server, CancellationToken token)
     {
         if (!voteState.Votes.TryGetValue(server, out var voteBase)) return Task.CompletedTask;
-        if (configuration.VoteKickConfiguration.MinimumPlayersRequired > server.ConnectedClients.Count)
+        if (voteConfiguration.MinimumPlayersRequired > server.ConnectedClients.Count)
         {
             VoteCancelled?.Invoke(server, VoteCancellation.Disconnect, configuration.Translations.VoteCancelledDueToPlayerDisconnect);
             EndVote(server, true, CancellationToken.None);
@@ -110,9 +117,10 @@ public abstract class VoteProcessor<TVote>(ConfigurationBase configuration, Vote
         return Task.CompletedTask;
     }
 
-    public virtual void CancelVote(Server server)
+    public virtual void CancelVote(Server server, string cancelledBy)
     {
-        VoteCancelled?.Invoke(server, VoteCancellation.Admin, configuration.Translations.VoteCancelled);
+        VoteCancelled?.Invoke(server, VoteCancellation.Admin,
+            configuration.Translations.VoteCancelled.FormatExt(cancelledBy));
         EndVote(server, true, CancellationToken.None);
     }
 

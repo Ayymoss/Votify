@@ -11,22 +11,22 @@ public class Validation : AbstractValidator<VoteConfigurationBase>
     {
         RuleFor(x => x.VoteCooldown)
             .LessThan(DateTimeOffset.UtcNow - lastVote)
-            .WithMessage(VoteResult.VoteCooldown.ToString());
+            .WithMessage(nameof(VoteResult.VoteCooldown));
     }
 
     public Validation(IGameServer server, VoteBase voteBase)
     {
         RuleFor(x => x)
             .Must(config => IsEnoughVotes(config, server, voteBase))
-            .WithMessage(VoteResult.NotEnoughVotes.ToString());
+            .WithMessage(nameof(VoteResult.NotEnoughVotes));
 
         RuleFor(x => x)
             .Must(config => IsEnoughPlayers(config, voteBase))
-            .WithMessage(VoteResult.NotEnoughPlayers.ToString());
+            .WithMessage(nameof(VoteResult.NotEnoughPlayers));
 
         RuleFor(x => x)
             .Must(config => HasVotePercentage(config, voteBase))
-            .WithMessage(VoteResult.VoteFailed.ToString());
+            .WithMessage(nameof(VoteResult.VoteFailed));
     }
 
     // MinimumVotingPlayersPercentage

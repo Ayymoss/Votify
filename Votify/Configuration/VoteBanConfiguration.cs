@@ -1,6 +1,6 @@
 namespace Votify.Configuration;
 
-public class VoteBanConfiguration : VoteConfigurationBase
+public class VoteBanConfiguration : VoteConfigurationBase, IKdrVoteConfiguration
 {
     public TimeSpan VoteBanDuration { get; set; } = TimeSpan.FromMinutes(30);
     public bool CanBadPlayersVote { get; set; }

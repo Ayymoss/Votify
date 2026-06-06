@@ -3,23 +3,24 @@
 public class Translation
 {
     // @formatter:off
-    public string NotEnoughVotes { get; set; } = "(Color::Yellow)VOTE {{type}}(Color::White): (Color::Red)Failed! Not enough votes!";
+    public string NotEnoughVotes { get; set; } = "(Color::Yellow)VOTE {{type}}(Color::White): (Color::Red)Failed! (Color::White)Needed (Color::Yellow){{needed}} (Color::White)more vote(s)!";
     public string NotEnoughYesVotes { get; set; } = "(Color::Yellow)VOTE {{type}}(Color::White): (Color::Red)Failed! Not enough Yes votes!";
-    public string OpenVoteAutoMessage { get; set; } = "(Color::Yellow)VOTE {{type}}(Color::White): [(Color::Green){{yes}}(Color::White):{{abstains}}:(Color::Red){{no}}(Color::White) @ (Color::Yellow){{target}}(Color::White)] Type (Color::Green)!y (Color::White)or (Color::Red)!n (Color::White)to vote";
-    public string OpenVoteAutoMessageNoTarget { get; set; } = "(Color::Yellow)VOTE {{type}}(Color::White): [(Color::Green){{yes}}(Color::White):{{abstains}}:(Color::Red){{no}}(Color::White)] Type (Color::Green)!y (Color::White)or (Color::Red)!n (Color::White)to vote";
+    public string OpenVoteAutoMessage { get; set; } = "(Color::Yellow)VOTE {{type}}(Color::White): [(Color::Green){{yes}}(Color::White):{{abstains}}:(Color::Red){{no}}(Color::White) @ (Color::Yellow){{target}}(Color::White)] Type (Color::Green)!y (Color::White)or (Color::Red)!n (Color::White)to vote (Color::Yellow)({{timeLeft}}s)";
+    public string OpenVoteAutoMessageNoTarget { get; set; } = "(Color::Yellow)VOTE {{type}}(Color::White): [(Color::Green){{yes}}(Color::White):{{abstains}}:(Color::Red){{no}}(Color::White)] Type (Color::Green)!y (Color::White)or (Color::Red)!n (Color::White)to vote (Color::Yellow)({{timeLeft}}s)";
     public string VotePassed { get; set; } = "(Color::Yellow)VOTE {{type}}(Color::White): [(Color::Green){{yes}}(Color::White):{{abstains}}:(Color::Red){{no}}(Color::White) @ (Color::Yellow){{target}}(Color::White)] (Color::Green)Passed!";
+    public string VoteBanPassed { get; set; } = "(Color::Yellow)VOTE {{type}}(Color::White): [(Color::Green){{yes}}(Color::White):{{abstains}}:(Color::Red){{no}}(Color::White) @ (Color::Yellow){{target}}(Color::White)] (Color::Green)Passed! (Color::White)Banned for (Color::Yellow){{duration}}";
     public string VoteCancelledDueToPlayerDisconnect { get; set; } = "(Color::Yellow)VOTE(Color::White): Vote {{type}} cancelled due to player disconnect";
     public string VoteInProgress { get; set; } = "(Color::Yellow)VOTE(Color::White): There is already a vote in progress";
     public string KickBanVoteStarted { get; set; } = "(Color::Yellow)VOTE(Color::White): (Color::Accent){{origin}} (Color::White)wants to (Color::Accent){{type}} (Color::Yellow){{target}} (Color::White)for (Color::Accent){{reason}}";
     public string MapVoteStarted { get; set; } = "(Color::Yellow)VOTE(Color::White): (Color::Accent){{origin}} (Color::White)wants to (Color::Accent)Change (Color::White)the map to (Color::Yellow){{mapName}}";
     public string SkipVoteStarted { get; set; } = "(Color::Yellow)VOTE(Color::White): (Color::Accent){{origin}} (Color::White)wants to (Color::Accent)Skip (Color::White)this map";
-    public string VoteCancelled { get; set; } = "(Color::Yellow)VOTE(Color::White): Vote cancelled";
+    public string VoteCancelled { get; set; } = "(Color::Yellow)VOTE(Color::White): Vote cancelled by (Color::Accent){{admin}}";
     public string NoVoteInProgress { get; set; } = "(Color::Yellow)VOTE(Color::White): No vote in progress";
     public string VoteSuccess { get; set; } = "(Color::Yellow)VOTE(Color::White): Your {{vote}} vote has been counted";
     public string AlreadyVoted { get; set; } = "(Color::Yellow)VOTE(Color::White): You have already voted";
     public string VoteDisabled { get; set; } = "(Color::Yellow)VOTE(Color::White): {{type}} votes are disabled";
     public string TooRecentVote { get; set; } = "(Color::Yellow)VOTE(Color::White): There was a recent vote, please wait";
-    public string VoteAction { get; set; } = "VOTE: {{reason}} [y{{yes}}:a{{abstains}}:n{{no}}]";
+    public string VoteAction { get; set; } = "VOTE: {{reason}} [y{{yes}}/a{{abstains}}/n{{no}}]";
     public string MapNotFound { get; set; } = "(Color::Yellow)VOTE(Color::White): Map not found";
     public string NotEnoughPlayers { get; set; } = "(Color::Yellow)VOTE(Color::White): Not enough players to start a vote";
     public string DenySelfTarget { get; set; } = "(Color::Yellow)VOTE(Color::White): You cannot target yourself";
