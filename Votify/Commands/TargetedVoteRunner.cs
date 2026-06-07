@@ -1,11 +1,7 @@
-using System.Collections.Concurrent;
 using Data.Abstractions;
 using Data.Models.Client.Stats;
 using Microsoft.EntityFrameworkCore;
 using SharedLibraryCore;
-using SharedLibraryCore.Commands;
-using SharedLibraryCore.Configuration;
-using SharedLibraryCore.Interfaces;
 using Votify.Configuration;
 using Votify.Enums;
 using Votify.Interfaces;
@@ -14,44 +10,38 @@ using Votify.Services;
 
 namespace Votify.Commands;
 
-public abstract class TargetedVoteCommand<TVote>(
-    CommandConfiguration config,
-    ITranslationLookup translationLookup,
+// Shared execution logic for targeted (player) votes. Deliberately NOT a Command:
+// IW4MAdmin's plugin discovery registers and instantiates every class whose BaseType
+// is Command, so an abstract/generic Command base would crash host startup. Concrete
+// commands derive from Command directly and delegate here.
+public sealed class TargetedVoteRunner(
     ConfigurationBase voteConfig,
     IVoteProcessor processor,
     IDatabaseContextFactory contextFactory,
     MetaManager metaManager)
-    : Command(config, translationLookup)
-    where TVote : VoteBase
 {
-    protected readonly ConfigurationBase _voteConfig = voteConfig;
-
-    protected abstract VoteType VoteType { get; }
-    protected abstract VoteConfigurationBase VoteTypeConfig { get; }
-    protected abstract TVote CreateVoteObject(GameEvent gameEvent);
-    protected abstract string GetSuccessMessage(GameEvent gameEvent);
-
-    public override async Task ExecuteAsync(GameEvent gameEvent)
+    public async Task ExecuteAsync(GameEvent gameEvent, VoteType voteType, VoteConfigurationBase voteTypeConfig,
+        Func<GameEvent, VoteBase> createVote, Func<GameEvent, string> getSuccessMessage)
     {
-        if (!VoteTypeConfig.IsEnabled)
+        if (!voteTypeConfig.IsEnabled)
         {
-            gameEvent.Origin.Tell(_voteConfig.Translations.VoteDisabled.FormatExt(VoteType));
+            gameEvent.Origin.Tell(voteConfig.Translations.VoteDisabled.FormatExt(voteType));
             return;
         }
 
         if (await metaManager.IsUserVoteBlockedAsync(gameEvent.Origin.ClientId))
         {
-            gameEvent.Origin.Tell(_voteConfig.Translations.VoteBlocked);
+            gameEvent.Origin.Tell(voteConfig.Translations.VoteBlocked);
             return;
         }
 
-        if (_voteConfig.DisabledServers.TryGetValue(gameEvent.Owner.Id, out var voteType) && voteType.Contains(VoteType))
+        if (voteConfig.DisabledServers.TryGetValue(gameEvent.Owner.Id, out var disabled) && disabled.Contains(voteType))
         {
-            gameEvent.Origin.Tell(_voteConfig.Translations.VoteDisabledServer);
+            gameEvent.Origin.Tell(voteConfig.Translations.VoteDisabledServer);
             return;
         }
 
-        if (VoteTypeConfig is IKdrVoteConfiguration { CanBadPlayersVote: false } kdrConfig &&
+        if (voteTypeConfig is IKdrVoteConfiguration { CanBadPlayersVote: false } kdrConfig &&
             !gameEvent.Owner.GametypeName.Contains("zom", StringComparison.CurrentCultureIgnoreCase))
         {
             var context = contextFactory.CreateContext(false);
@@ -71,7 +61,7 @@ public abstract class TargetedVoteCommand<TVote>(
 
             if (kdr < targetKdr)
             {
-                gameEvent.Origin.Tell(_voteConfig.Translations.VoteDisabledPoorPerformance
+                gameEvent.Origin.Tell(voteConfig.Translations.VoteDisabledPoorPerformance
                     .FormatExt(kdr.ToString("N2"), targetKdr.ToString("N2")));
                 return;
             }
@@ -79,47 +69,47 @@ public abstract class TargetedVoteCommand<TVote>(
 
         if (gameEvent.Target.IsBot)
         {
-            gameEvent.Origin.Tell(_voteConfig.Translations.CannotVoteBot);
+            gameEvent.Origin.Tell(voteConfig.Translations.CannotVoteBot);
             return;
         }
 
         if (gameEvent.Origin.ClientId == gameEvent.Target.ClientId)
         {
-            gameEvent.Origin.Tell(_voteConfig.Translations.DenySelfTarget);
+            gameEvent.Origin.Tell(voteConfig.Translations.DenySelfTarget);
             return;
         }
 
         if (gameEvent.Target.Level > Data.Models.Client.EFClient.Permission.Flagged)
         {
-            gameEvent.Origin.Tell(_voteConfig.Translations.CannotVoteRanked);
+            gameEvent.Origin.Tell(voteConfig.Translations.CannotVoteRanked);
             return;
         }
 
-        if (VoteTypeConfig.MinimumPlayersRequired > gameEvent.Owner.ConnectedClients.Count)
+        if (voteTypeConfig.MinimumPlayersRequired > gameEvent.Owner.ConnectedClients.Count)
         {
-            gameEvent.Origin.Tell(_voteConfig.Translations.NotEnoughPlayers);
+            gameEvent.Origin.Tell(voteConfig.Translations.NotEnoughPlayers);
             return;
         }
 
-        var vote = CreateVoteObject(gameEvent);
+        var vote = createVote(gameEvent);
         var result = processor.CreateVote(gameEvent.Owner, vote);
 
         switch (result)
         {
             case VoteResult.Success:
-                gameEvent.Owner.Broadcast(GetSuccessMessage(gameEvent));
+                gameEvent.Owner.Broadcast(getSuccessMessage(gameEvent));
                 break;
             case VoteResult.VoteInProgress:
-                gameEvent.Origin.Tell(_voteConfig.Translations.VoteInProgress);
+                gameEvent.Origin.Tell(voteConfig.Translations.VoteInProgress);
                 break;
             case VoteResult.VoteCooldown:
-                gameEvent.Origin.Tell(_voteConfig.Translations.TooRecentVote);
+                gameEvent.Origin.Tell(voteConfig.Translations.TooRecentVote);
                 break;
             case VoteResult.NotEnoughPlayers:
-                gameEvent.Origin.Tell(_voteConfig.Translations.NotEnoughPlayers);
+                gameEvent.Origin.Tell(voteConfig.Translations.NotEnoughPlayers);
                 break;
             case VoteResult.AbusiveVoter:
-                gameEvent.Origin.Tell(_voteConfig.Translations.AbusiveVoter);
+                gameEvent.Origin.Tell(voteConfig.Translations.AbusiveVoter);
                 break;
         }
     }

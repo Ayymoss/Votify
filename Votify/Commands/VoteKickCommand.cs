@@ -14,16 +14,21 @@ using Votify.Services;
 
 namespace Votify.Commands;
 
-public class VoteKickCommand : TargetedVoteCommand<VoteKick>
+public class VoteKickCommand : Command
 {
+    private readonly ConfigurationBase _voteConfig;
+    private readonly TargetedVoteRunner _runner;
+
     public VoteKickCommand(CommandConfiguration config, ITranslationLookup translationLookup, ConfigurationBase voteConfig,
         VoteKickProcessor processor, IDatabaseContextFactory contextFactory, MetaManager metaManager)
-        : base(config, translationLookup, voteConfig, processor, contextFactory, metaManager)
+        : base(config, translationLookup)
     {
+        _voteConfig = voteConfig;
+        _runner = new TargetedVoteRunner(voteConfig, processor, contextFactory, metaManager);
         Name = "votekick";
         Description = "starts a vote to kick a player";
         Alias = "vk";
-        Permission = Data.Models.Client.EFClient.Permission.User;
+        Permission = EFClient.Permission.User;
         RequiresTarget = true;
         Arguments =
         [
@@ -40,10 +45,10 @@ public class VoteKickCommand : TargetedVoteCommand<VoteKick>
         ];
     }
 
-    protected override VoteType VoteType => VoteType.Kick;
-    protected override VoteConfigurationBase VoteTypeConfig => _voteConfig.VoteKickConfiguration;
+    public override Task ExecuteAsync(GameEvent gameEvent) =>
+        _runner.ExecuteAsync(gameEvent, VoteType.Kick, _voteConfig.VoteKickConfiguration, CreateVoteObject, GetSuccessMessage);
 
-    protected override VoteKick CreateVoteObject(GameEvent gameEvent) => new()
+    private VoteKick CreateVoteObject(GameEvent gameEvent) => new()
     {
         Initiator = gameEvent.Origin,
         Created = DateTimeOffset.UtcNow,
@@ -56,7 +61,7 @@ public class VoteKickCommand : TargetedVoteCommand<VoteKick>
         Reason = gameEvent.Data
     };
 
-    protected override string GetSuccessMessage(GameEvent gameEvent) =>
+    private string GetSuccessMessage(GameEvent gameEvent) =>
         _voteConfig.Translations.KickBanVoteStarted
             .FormatExt(gameEvent.Origin.CleanedName, VoteType.Kick, gameEvent.Target.CleanedName, gameEvent.Data);
 }

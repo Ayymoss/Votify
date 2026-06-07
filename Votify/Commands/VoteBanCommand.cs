@@ -14,12 +14,17 @@ using Votify.Services;
 
 namespace Votify.Commands;
 
-public class VoteBanCommand : TargetedVoteCommand<VoteBan>
+public class VoteBanCommand : Command
 {
+    private readonly ConfigurationBase _voteConfig;
+    private readonly TargetedVoteRunner _runner;
+
     public VoteBanCommand(CommandConfiguration config, ITranslationLookup translationLookup, ConfigurationBase voteConfig,
         VoteBanProcessor processor, IDatabaseContextFactory contextFactory, MetaManager metaManager)
-        : base(config, translationLookup, voteConfig, processor, contextFactory, metaManager)
+        : base(config, translationLookup)
     {
+        _voteConfig = voteConfig;
+        _runner = new TargetedVoteRunner(voteConfig, processor, contextFactory, metaManager);
         Name = "voteban";
         Description = "starts a vote to ban a player";
         Alias = "vb";
@@ -40,10 +45,10 @@ public class VoteBanCommand : TargetedVoteCommand<VoteBan>
         ];
     }
 
-    protected override VoteType VoteType => VoteType.Ban;
-    protected override VoteConfigurationBase VoteTypeConfig => _voteConfig.VoteBanConfiguration;
+    public override Task ExecuteAsync(GameEvent gameEvent) =>
+        _runner.ExecuteAsync(gameEvent, VoteType.Ban, _voteConfig.VoteBanConfiguration, CreateVoteObject, GetSuccessMessage);
 
-    protected override VoteBan CreateVoteObject(GameEvent gameEvent) => new()
+    private VoteBan CreateVoteObject(GameEvent gameEvent) => new()
     {
         Initiator = gameEvent.Origin,
         Created = DateTimeOffset.UtcNow,
@@ -56,7 +61,7 @@ public class VoteBanCommand : TargetedVoteCommand<VoteBan>
         Reason = gameEvent.Data
     };
 
-    protected override string GetSuccessMessage(GameEvent gameEvent) =>
+    private string GetSuccessMessage(GameEvent gameEvent) =>
         _voteConfig.Translations.KickBanVoteStarted
             .FormatExt(gameEvent.Origin.CleanedName, VoteType.Ban, gameEvent.Target.CleanedName, gameEvent.Data);
 }
